@@ -18,6 +18,7 @@ class EventLogger:
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sim_day REAL NOT NULL,
+                real_ts TEXT NOT NULL,
                 entity_id TEXT NOT NULL,
                 stage TEXT NOT NULL,
                 status TEXT NOT NULL,
@@ -38,15 +39,16 @@ class EventLogger:
         status: str,
         quantity: Optional[float] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        real_ts: Optional[str] = None,
     ) -> None:
         """Insert an event row, committing in batches for performance."""
         payload = json.dumps(metadata or {}, ensure_ascii=True)
         self.conn.execute(
             """
-            INSERT INTO events (sim_day, entity_id, stage, status, quantity, metadata)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO events (sim_day, real_ts, entity_id, stage, status, quantity, metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (sim_day, entity_id, stage, status, quantity, payload),
+            (sim_day, real_ts or "", entity_id, stage, status, quantity, payload),
         )
         self._pending += 1
         if self._pending >= self._batch_size:

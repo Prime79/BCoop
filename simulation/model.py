@@ -4,6 +4,7 @@ import itertools
 import math
 import random
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -87,6 +88,7 @@ class ChickSimulation:
         self.egg_sources = itertools.cycle(range(1, 16))
 
         self.slaughter_records: List[SlaughterRecord] = []
+        self._timestamp_cache: Optional[str] = None
 
     def _populate_machine_slots(self) -> None:
         for machine in range(1, self.cfg.pre_hatch_machines + 1):
@@ -113,6 +115,27 @@ class ChickSimulation:
         self.env.process(self._generate_shipments())
         self.env.run(until=self.cfg.simulation_days)
 
+    def _current_timestamp(self) -> str:
+        return (self.cfg.start_date + timedelta(days=self.env.now)).isoformat()
+
+    def _log(
+        self,
+        entity_id: str,
+        stage: str,
+        status: str,
+        quantity: Optional[float],
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self.logger.log(
+            self.env.now,
+            entity_id,
+            stage,
+            status,
+            quantity,
+            metadata,
+            real_ts=self._current_timestamp(),
+        )
+
     def _generate_shipments(self):  # type: ignore[override]
         mean_shipments = self.capacity_plan.shipments_per_day
         while True:
@@ -128,13 +151,12 @@ class ChickSimulation:
     def _handle_shipment(self, shipment_id: str, source_id: int):  # type: ignore[override]
         eggs = self.cfg.shipment_eggs
         farm_cars = math.ceil(eggs / self.cfg.farm_car_eggs)
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="inventory",
-            status="arrived",
-            quantity=eggs,
-            metadata={"source": f"egg-farm-{source_id}", "farm_cars": farm_cars},
+            "inventory",
+            "arrived",
+            eggs,
+            {"source": f"egg-farm-{source_id}", "farm_cars": farm_cars},
         )
 
         cart_processes = []
@@ -157,67 +179,50 @@ class ChickSimulation:
         total_chicks = sum(result.chicks for result in cart_results)
         total_hatch_losses = sum(result.hatch_losses for result in cart_results)
 
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="pre_hatch",
-            status="loaded",
-            quantity=eggs,
-            metadata={"cart_count": len(cart_results)},
+            "pre_hatch",
+            "loaded",
+            eggs,
+            {"cart_count": len(cart_results)},
         )
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="xray_screen",
-            status="discarded",
-            quantity=total_discarded,
-            metadata={"cart_count": len(cart_results)},
+            "xray_screen",
+            "discarded",
+            total_discarded,
+            {"cart_count": len(cart_results)},
         )
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="hatch_room",
-            status="loaded",
-            quantity=total_fertile,
-            metadata={"cart_count": len(cart_results)},
+            "hatch_room",
+            "loaded",
+            total_fertile,
+            {"cart_count": len(cart_results)},
         )
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="hatch_room",
-            status="hatched",
-            quantity=total_chicks,
-            metadata={"losses": total_hatch_losses},
+            "hatch_room",
+            "hatched",
+            total_chicks,
+            {"losses": total_hatch_losses},
         )
 
         if total_chicks <= 0:
-            self.logger.log(
-                self.env.now,
-                shipment_id,
-                stage="hatch_room",
-                status="empty_shipment",
-                quantity=0,
-            )
+            self._log(shipment_id, "hatch_room", "empty_shipment", 0)
             return
 
         yield self.env.timeout(self.cfg.sort_and_vaccinate_hours / 24)
-        self.logger.log(
-            self.env.now,
-            shipment_id,
-            stage="processing",
-            status="sorted",
-            quantity=total_chicks,
-        )
+        self._log(shipment_id, "processing", "sorted", total_chicks)
 
         yield self.env.timeout(self.cfg.load_to_transport_hours / 24)
         trucks_needed = max(1, math.ceil(total_chicks / self.cfg.chicks_per_truck))
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="transport_loading",
-            status="scheduled",
-            quantity=total_chicks,
-            metadata={"trucks": trucks_needed},
+            "transport_loading",
+            "scheduled",
+            total_chicks,
+            {"trucks": trucks_needed},
         )
 
         remaining_chicks = total_chicks
@@ -228,22 +233,20 @@ class ChickSimulation:
             remaining_chicks -= load
             yield self.truck_slots.get(1)
             truck_id = f"{shipment_id}-truck-{truck_counter:02d}"
-            self.logger.log(
-                self.env.now,
+            self._log(
                 shipment_id,
-                stage="transport_loading",
-                status="departed",
-                quantity=load,
-                metadata={"truck_id": truck_id},
+                "transport_loading",
+                "departed",
+                load,
+                {"truck_id": truck_id},
             )
             yield self.env.timeout(self.cfg.transport_time_days)
-            self.logger.log(
-                self.env.now,
+            self._log(
                 shipment_id,
-                stage="transport",
-                status="arrived",
-                quantity=load,
-                metadata={"truck_id": truck_id},
+                "transport",
+                "arrived",
+                load,
+                {"truck_id": truck_id},
             )
             yield from self._place_truck(shipment_id, truck_id, load)
             self.truck_slots.put(1)
@@ -252,23 +255,21 @@ class ChickSimulation:
         self, shipment_id: str, cart_id: str, eggs: int
     ) -> simpy.events.Event:
         slot_id = yield self.pre_hatch_slots.get()
-        self.logger.log(
-            self.env.now,
+        self._log(
             cart_id,
-            stage="pre_hatch_cart",
-            status="loaded",
-            quantity=eggs,
-            metadata={"shipment_id": shipment_id, "machine_slot": slot_id},
+            "pre_hatch_cart",
+            "loaded",
+            eggs,
+            {"shipment_id": shipment_id, "machine_slot": slot_id},
         )
         yield self.env.timeout(self.cfg.pre_hatch_days)
         yield self.pre_hatch_slots.put(slot_id)
-        self.logger.log(
-            self.env.now,
+        self._log(
             cart_id,
-            stage="pre_hatch_cart",
-            status="released",
-            quantity=eggs,
-            metadata={"shipment_id": shipment_id, "machine_slot": slot_id},
+            "pre_hatch_cart",
+            "released",
+            eggs,
+            {"shipment_id": shipment_id, "machine_slot": slot_id},
         )
 
         pass_rate = self.rng.betavariate(self.cfg.xray_alpha, self.cfg.xray_beta)
@@ -276,13 +277,12 @@ class ChickSimulation:
         discarded = eggs - fertile
 
         hatch_slot_id = yield self.hatch_slots.get()
-        self.logger.log(
-            self.env.now,
+        self._log(
             cart_id,
-            stage="hatch_cart",
-            status="loaded",
-            quantity=fertile,
-            metadata={"shipment_id": shipment_id, "machine_slot": hatch_slot_id},
+            "hatch_cart",
+            "loaded",
+            fertile,
+            {"shipment_id": shipment_id, "machine_slot": hatch_slot_id},
         )
         hatch_duration = self.rng.uniform(*self.cfg.hatch_days_range)
         yield self.env.timeout(hatch_duration)
@@ -292,13 +292,12 @@ class ChickSimulation:
         hatch_losses = fertile - chicks
 
         yield self.hatch_slots.put(hatch_slot_id)
-        self.logger.log(
-            self.env.now,
+        self._log(
             cart_id,
-            stage="hatch_cart",
-            status="hatched",
-            quantity=chicks,
-            metadata={"shipment_id": shipment_id, "machine_slot": hatch_slot_id, "losses": hatch_losses},
+            "hatch_cart",
+            "hatched",
+            chicks,
+            {"shipment_id": shipment_id, "machine_slot": hatch_slot_id, "losses": hatch_losses},
         )
 
         return CartResult(
@@ -346,13 +345,12 @@ class ChickSimulation:
                 portion = min(available, remaining)
                 confirmed_place.add(shipment_id, portion)
                 remaining -= portion
-                self.logger.log(
-                    self.env.now,
+                self._log(
                     shipment_id,
-                    stage="farm_intake",
-                    status="placed",
-                    quantity=portion,
-                    metadata={
+                    "farm_intake",
+                    "placed",
+                    portion,
+                    {
                         "truck_id": truck_id,
                         "place_id": confirmed_place.place_id,
                         "farm": confirmed_place.farm_name,
@@ -392,21 +390,19 @@ class ChickSimulation:
         survival_rate = self.rng.betavariate(self.cfg.farm_alpha, self.cfg.farm_beta)
         survivors = int(round(amount * survival_rate))
         losses = amount - survivors
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="grow_out",
-            status="completed",
-            quantity=survivors,
-            metadata={"losses": losses, "place_id": place.place_id, "farm": place.farm_name},
+            "grow_out",
+            "completed",
+            survivors,
+            {"losses": losses, "place_id": place.place_id, "farm": place.farm_name},
         )
-        self.logger.log(
-            self.env.now,
+        self._log(
             shipment_id,
-            stage="slaughter",
-            status="shipped",
-            quantity=survivors,
-            metadata={"place_id": place.place_id, "farm": place.farm_name},
+            "slaughter",
+            "shipped",
+            survivors,
+            {"place_id": place.place_id, "farm": place.farm_name},
         )
         self.slaughter_records.append(
             SlaughterRecord(
@@ -420,13 +416,12 @@ class ChickSimulation:
         removed = place.decrement(shipment_id, amount)
         if place.occupied == 0:
             place.cleaning_until = self.env.now + self.cfg.cleaning_days
-            self.logger.log(
-                self.env.now,
+            self._log(
                 shipment_id,
-                stage="farm_place",
-                status="available",
-                quantity=removed,
-                metadata={"place_id": place.place_id, "farm": place.farm_name},
+                "farm_place",
+                "available",
+                removed,
+                {"place_id": place.place_id, "farm": place.farm_name},
             )
             yield self.env.timeout(self.cfg.cleaning_days)
             place.cleaning_until = 0.0

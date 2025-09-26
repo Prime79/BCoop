@@ -4,7 +4,7 @@ The simulation tracks end-to-end poultry logistics starting with 100 000-egg s
 
 ## Process Outline
 
-1. **Shipment Intake** – Each shipment (~100 000 eggs) arrives on a transport manifest. Metadata records the source egg farm and the number of farm cars (3 520 eggs each) used.
+1. **Shipment Intake** – Each shipment (~100 000 eggs) arrives on a transport manifest. Metadata records the source egg farm and the number of farm cars (3 520 eggs each) used. All events now carry both the simulation day and the real-world timestamp (starting 2025-01-01) so outputs can be aligned with the calendar.
 2. **Setter Loading** – Shipments are decomposed into 7 040-egg setter carts and assigned to one of 56 setter machines (18 carts per machine). Setter events capture the machine/slot and timestamps for every cart.
 3. **X-ray & Vaccination** – Cart-level betavariate losses model candling and in-ovo operations. Discard counts roll up to the parent shipment for aggregate reporting.
 4. **Hatcher Loading** – Fertile eggs transfer onto hatcher carts, again tracked per machine slot. Hatch duration varies between 3–5 days and produces the chick count plus hatch losses.

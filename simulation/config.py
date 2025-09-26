@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Sequence, Tuple
 
 
@@ -57,6 +58,7 @@ class SimulationConfig:
     warmup_days: int = 120
 
     db_path: str = "hatchery_events.sqlite"
+    start_date: datetime = datetime(2025, 1, 1)
 
     @property
     def farm_specs(self) -> Sequence[FarmSpec]:
