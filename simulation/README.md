@@ -1,37 +1,30 @@
 # Hatchery Simulation Overview
 
-This simulation models the full flow from egg arrival through slaughter and post-cycle cleaning. It is implemented with [SimPy](https://simpy.readthedocs.io/) and persists every event into SQLite for downstream analytics.
+The simulation tracks end-to-end poultry logistics starting with 100 000-egg shipments and ending with slaughter-ready birds. It relies on [SimPy](https://simpy.readthedocs.io/) for discrete-event modeling and logs every step to SQLite for downstream analytics and traceability.
 
-## Process Stages
+## Process Outline
 
-1. **Inventory Arrival** – Egg batches sourced from 15 farms enter the system as car-sized loads. Each batch is tagged for either standard or QS destinations according to the configured ratio.
-2. **Pre-Hatch Rooms** – Cars occupy pre-hatch rooms for 24 simulated days. The number of concurrent cars is capped by the derived capacity plan (27 sites × 60 rooms × 18 cars/room).
-3. **X-Ray & Vaccination** – After pre-hatch, unfertile eggs are discarded using a beta-distributed pass rate. Surviving eggs are vaccinated and moved forward.
-4. **Hatch Rooms** – Fertile eggs spend 3–5 days in hatch rooms before chicks emerge, again subject to a beta-distributed hatch rate.
-5. **Processing** – Chicks are sorted, measured, and vaccinated. Processing and container loading are modeled as short-duration delays.
-6. **Transport & Logistics** – Transport containers compete for a shared pool of trucks (80 trucks × 16 cars each). Travel to farms takes one day.
-7. **Farm Placement & Mixing** – Farms have limited places (60 farms × 12 places × 27,000 chicks). Thirty percent of places are reserved for QS batches. Multiple batches can mix inside the same barn place until capacity is reached; the simulation logs the place identifier and the contributing batch IDs so downstream analysis can query a barn and trace its composition.
-8. **Grow-Out & Slaughter** – Chicks grow for 56 days. Survival is sampled from a beta distribution. Survivors are logged as slaughter-ready output.
-9. **Cleaning & Reset** – After slaughter shipment, farm places remain blocked for a 7-day cleaning period before capacity is released.
+1. **Shipment Intake** – Each shipment (~100 000 eggs) arrives on a transport manifest. Metadata records the source egg farm and the number of farm cars (3 520 eggs each) used.
+2. **Setter Loading** – Shipments are decomposed into 7 040-egg setter carts and assigned to one of 56 setter machines (18 carts per machine). Setter events capture the machine/slot and timestamps for every cart.
+3. **X-ray & Vaccination** – Cart-level betavariate losses model candling and in-ovo operations. Discard counts roll up to the parent shipment for aggregate reporting.
+4. **Hatcher Loading** – Fertile eggs transfer onto hatcher carts, again tracked per machine slot. Hatch duration varies between 3–5 days and produces the chick count plus hatch losses.
+5. **Processing** – Chicks undergo sorting, measuring, and vaccination before loading onto 3 200-chick transport trucks.
+6. **Farm Allocation** – Truck loads are routed into a curated list of grow-out farms. Each farm has five barns; capacities reflect the supplied net placement figures. Mixing is logged per barn so we can reconstruct which shipments occupy the same house.
+7. **Grow-Out & Slaughter** – Barn cohorts grow for 56 days with survival sampled from a beta distribution. Survivors feed slaughter stats; losses remain associated with the source shipment and barn.
+8. **Cleaning** – When a barn empties, it enters a 7-day cleaning window during which no new chicks can be placed. Events note the cleaning start/finish.
 
-## Key Modules & Functions
+## Key Modules
 
 - `simulation.config`
-  - `SimulationConfig`: Dataclass containing all tunable parameters (durations, capacities, ratios, stochastic loss parameters, DB path).
-  - `CapacityPlan`: Dataclass summarizing derived capacity numbers used to size resources.
-  - `derive_capacity(cfg)`: Computes expected daily cars, site counts, and slot capacities from the configuration.
-- `simulation.logger`
-  - `EventLogger`: Lightweight SQLite writer. `log()` batches inserts, `close()` flushes pending rows.
+  - `FarmSpec`: Captures farm-level placement capacity and barn count.
+  - `SimulationConfig`: Aggregates all tunable constants (shipment sizing, machine counts, durations, stochastic parameters, database path).
+  - `derive_capacity(cfg)`: Computes steady-state requirements (shipments per day, setter/hatcher slot pressure, chicks needed at farms).
 - `simulation.model`
-  - `EggBatch`: Represents a single car of eggs with source metadata and target segment.
-  - `BarnPlace`: Tracks per-place occupancy, mixing state, and cleaning windows.
-  - `ChickSimulation`: Encapsulates the SimPy environment, resources, and processes. Notable methods:
-    - `run()`: Starts event generation and advances the simulation clock.
-    - `_generate_egg_batches()`: Produces daily car loads using a Poisson process.
-    - `_handle_batch(batch)`: Runs a batch through inventory, pre-hatch, x-ray, hatch, processing, transport, farm placement.
-    - `_manage_farm_cycle(batch, chicks, container)`: Covers grow-out, slaughter logging, and cleaning release.
-    - `summarize()`: Aggregates post-warmup slaughter output to compute daily averages.
-- `run_simulation.main()`: Entry point that instantiates the configuration, resets the SQLite database, executes the simulation, and prints headline metrics.
+  - `CartResult`: Captures the output of a single setter/hatcher cart.
+  - `BarnPlace`: Tracks occupancy, mix, and cleaning window for each barn.
+  - `ChickSimulation`: The orchestrator that spawns shipments, routes carts through machines, dispatches trucks, manages grow-out, and records slaughter output.
+- `simulation.logger.EventLogger`: Handles batched persistence to SQLite.
+- `run_simulation.py`: Convenience script that wipes the database, runs the simulation, and prints capacity + throughput summaries.
 
 ## Running the Simulation
 
@@ -40,4 +33,4 @@ source .venv/bin/activate
 python run_simulation.py
 ```
 
-This produces a capacity summary and the average number of slaughter-ready chickens per steady-state day. All stage-level events are stored in `hatchery_events.sqlite` for further analysis.
+Artifacts are written to `hatchery_events.sqlite`. Cart-level events expose setter/hatcher machine usage, while shipment-level events (inventory → farm placement) enable Sankey visualisations or provenance queries.

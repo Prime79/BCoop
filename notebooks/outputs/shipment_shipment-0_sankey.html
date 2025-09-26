@@ -22,13 +22,13 @@
 <script>
 Highcharts.chart('batch-sankey', {
     chart: { inverted: true },
-    title: { text: 'Batch batch-0 Flow' },
+    title: { text: 'Shipment shipment-0 Flow' },
     tooltip: {
         pointFormat: '{point.fromNode.name} → {point.toNode.name}: <b>{Highcharts.numberFormat(point.weight, 0)}</b>'
     },
     series: [{
         keys: ['from', 'to', 'weight'],
-        data: [["Inventory", "Pre-Hatch", 400], ["Pre-Hatch", "Screened Fertile", 339], ["Pre-Hatch", "Screened Out", 61], ["Screened Fertile", "Hatching", 339], ["Hatching", "Embryo Loss", 12], ["Hatching", "Chicks", 327], ["Chicks", "Processing", 327], ["Processing", "Transport", 327], ["Transport", "Farm Placement", 327], ["Farm Placement", "Farm Loss", 29], ["Farm Placement", "Slaughter Ready", 298]],
+        data: [["Inventory", "Pre-Hatch", 100000], ["Pre-Hatch", "Screened Fertile", 85871], ["Pre-Hatch", "Screened Out", 14129], ["Screened Fertile", "Hatching", 85871], ["Hatching", "Embryo Loss", 4810], ["Hatching", "Chicks", 81061], ["Chicks", "Processing", 81061], ["Processing", "Transport", 81061], ["Transport", "Farm Placement", 81061], ["Farm Placement", "Farm Loss", 173], ["Farm Placement", "Slaughter Ready", 3027]],
         type: 'sankey',
         name: 'Quantity',
         dataLabels: { style: { textOutline: 'none', fontSize: '13px' } }

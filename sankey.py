@@ -110,16 +110,23 @@ def load_batch_flow(conn: sqlite3.Connection, batch_id: str) -> FlowResult:
     add_link("Farm Placement", "Farm Loss", farm_losses)
     add_link("Farm Placement", "Slaughter Ready", survivors)
 
+    def parse_metadata(row: Optional[pd.Series]) -> Dict[str, Any]:
+        if row is None:
+            return {}
+        raw = row.metadata
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {"raw": raw}
+
     metadata: Dict[str, Any] = {
         "batch_id": batch_id,
-        "inventory": inventory.metadata if inventory is not None else {},
-        "pre_hatch": json.loads(lookup("pre_hatch", "loaded").metadata)
-        if lookup("pre_hatch", "loaded") is not None
-        else {},
-        "hatch_room": json.loads(hatch_loaded.metadata) if hatch_loaded is not None else {},
-        "farm_intake": json.loads(lookup("farm_intake", "placed").metadata)
-        if lookup("farm_intake", "placed") is not None
-        else {},
+        "inventory": parse_metadata(inventory),
+        "pre_hatch": parse_metadata(lookup("pre_hatch", "loaded")),
+        "hatch_room": parse_metadata(hatch_loaded),
+        "farm_intake": parse_metadata(lookup("farm_intake", "placed")),
     }
 
     return FlowResult(nodes=nodes, links=links, metadata=metadata)
@@ -139,10 +146,11 @@ def load_barn_flow(conn: sqlite3.Connection, place_id: str) -> FlowResult:
         raise ValueError(f"No farm intake records found for place {place_id}")
 
     batches = intake_rows["entity_id"].unique()
-    mix = {
-        row.entity_id: json.loads(row.metadata).get("occupants", {}).get(row.entity_id, row.quantity)
-        for _, row in intake_rows.iterrows()
-    }
+    mix = {}
+    for _, row in intake_rows.iterrows():
+        meta = json.loads(row.metadata)
+        occupant_map = meta.get("mix", meta.get("occupants", {}))
+        mix[row.entity_id] = float(occupant_map.get(row.entity_id, row.quantity))
 
     nodes: List[str] = []
     links: List[Tuple[str, str, float]] = []

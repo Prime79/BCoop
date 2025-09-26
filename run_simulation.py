@@ -22,10 +22,10 @@ def main() -> None:
 
     print("Capacity plan:")
     print(f"  Eggs per day required: {plan.eggs_per_day_required:,.0f}")
-    print(f"  Cars per day: {plan.cars_per_day:,.1f}")
-    print(f"  Pre-hatch rooms needed: {plan.pre_hatch_rooms_needed:,.1f}")
-    print(f"  Sites used (60 rooms each): {plan.sites_used}")
-    print(f"  Total pre-hatch slots available: {plan.total_pre_hatch_slots:,}")
+    print(f"  Shipments per day: {plan.shipments_per_day:,.2f}")
+    print(f"  Pre-hatch carts per day: {plan.pre_hatch_carts_per_day:,.1f}")
+    print(f"  Pre-hatch slots needed: {plan.pre_hatch_slots_needed:,.1f}")
+    print(f"  Hatch slots needed: {plan.hatch_slots_needed:,.1f}")
 
     print("\nSimulation summary:")
     avg_slaughter = summary["avg_slaughter_per_day"]
