@@ -86,7 +86,7 @@ class ChickSimulation:
         self.barn_lock = simpy.Resource(self.env, capacity=1)
 
         self.shipment_counter = itertools.count()
-        self.egg_sources = itertools.cycle(range(1, 16))
+        self.parent_pairs = itertools.cycle(range(1, 16))
 
         self.slaughter_records: List[SlaughterRecord] = []
         self._timestamp_cache: Optional[str] = None
@@ -146,12 +146,12 @@ class ChickSimulation:
             interval = 1.0 / shipments_today
             for _ in range(shipments_today):
                 shipment_id = f"shipment-{next(self.shipment_counter)}"
-                source_id = next(self.egg_sources)
-                self.env.process(self._handle_shipment(shipment_id, source_id))
+                parent_pair_id = next(self.parent_pairs)
+                self.env.process(self._handle_shipment(shipment_id, parent_pair_id))
                 yield self.env.timeout(interval)
             yield self.env.timeout(max(0.0, 1.0 - shipments_today * interval))
 
-    def _handle_shipment(self, shipment_id: str, source_id: int):  # type: ignore[override]
+    def _handle_shipment(self, shipment_id: str, parent_pair_id: int):  # type: ignore[override]
         eggs = self.cfg.shipment_eggs
         farm_cars = math.ceil(eggs / self.cfg.farm_car_eggs)
         self._log(
@@ -159,7 +159,10 @@ class ChickSimulation:
             "inventory",
             "arrived",
             eggs,
-            {"source": f"egg-farm-{source_id}", "farm_cars": farm_cars},
+            {
+                "parent_pair": f"parent-pair-{parent_pair_id}",
+                "farm_cars": farm_cars,
+            },
         )
 
         cart_processes = []

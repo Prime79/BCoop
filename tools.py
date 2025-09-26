@@ -16,8 +16,8 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
-def _load_shipment_sources(conn: sqlite3.Connection) -> Dict[str, str]:
-    sources: Dict[str, str] = {}
+def _load_parent_pairs(conn: sqlite3.Connection) -> Dict[str, str]:
+    parent_pairs: Dict[str, str] = {}
     for row in conn.execute(
         """
         SELECT entity_id, metadata
@@ -26,8 +26,8 @@ def _load_shipment_sources(conn: sqlite3.Connection) -> Dict[str, str]:
         """
     ):
         meta = json.loads(row["metadata"]) if row["metadata"] else {}
-        sources[row["entity_id"]] = meta.get("source", "unknown")
-    return sources
+        parent_pairs[row["entity_id"]] = meta.get("parent_pair", "unknown")
+    return parent_pairs
 
 
 def get_farm_mix(
@@ -46,7 +46,7 @@ def get_farm_mix(
     Returns:
         A dict with two views:
             - "shipments": remaining chicks per shipment ID
-            - "egg_sources": remaining chicks aggregated by egg farm
+            - "parent_pairs": remaining chicks aggregated by parent pair
     """
 
     db_path = Path(db_path)
@@ -58,7 +58,7 @@ def get_farm_mix(
 
     conn = _connect(db_path)
     try:
-        sources = _load_shipment_sources(conn)
+        parent_pairs = _load_parent_pairs(conn)
 
         placements: Dict[str, float] = defaultdict(float)
         query = (
@@ -90,12 +90,12 @@ def get_farm_mix(
 
         by_source: Dict[str, float] = defaultdict(float)
         for shipment, qty in active_shipments.items():
-            source = sources.get(shipment, "unknown")
-            by_source[source] += qty
+            parent_pair = parent_pairs.get(shipment, "unknown")
+            by_source[parent_pair] += qty
 
         return {
             "shipments": dict(active_shipments),
-            "egg_sources": dict(by_source),
+            "parent_pairs": dict(by_source),
         }
     finally:
         conn.close()
