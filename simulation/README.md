@@ -10,7 +10,7 @@ This simulation models the full flow from egg arrival through slaughter and post
 4. **Hatch Rooms** – Fertile eggs spend 3–5 days in hatch rooms before chicks emerge, again subject to a beta-distributed hatch rate.
 5. **Processing** – Chicks are sorted, measured, and vaccinated. Processing and container loading are modeled as short-duration delays.
 6. **Transport & Logistics** – Transport containers compete for a shared pool of trucks (80 trucks × 16 cars each). Travel to farms takes one day.
-7. **Farm Placement** – Farms have limited places (60 farms × 12 places × 27,000 chicks). Thirty percent of capacity is reserved for QS batches. Farm slots stay occupied through grow-out and cleaning.
+7. **Farm Placement & Mixing** – Farms have limited places (60 farms × 12 places × 27,000 chicks). Thirty percent of places are reserved for QS batches. Multiple batches can mix inside the same barn place until capacity is reached; the simulation logs the place identifier and the contributing batch IDs so downstream analysis can query a barn and trace its composition.
 8. **Grow-Out & Slaughter** – Chicks grow for 56 days. Survival is sampled from a beta distribution. Survivors are logged as slaughter-ready output.
 9. **Cleaning & Reset** – After slaughter shipment, farm places remain blocked for a 7-day cleaning period before capacity is released.
 
@@ -24,6 +24,7 @@ This simulation models the full flow from egg arrival through slaughter and post
   - `EventLogger`: Lightweight SQLite writer. `log()` batches inserts, `close()` flushes pending rows.
 - `simulation.model`
   - `EggBatch`: Represents a single car of eggs with source metadata and target segment.
+  - `BarnPlace`: Tracks per-place occupancy, mixing state, and cleaning windows.
   - `ChickSimulation`: Encapsulates the SimPy environment, resources, and processes. Notable methods:
     - `run()`: Starts event generation and advances the simulation clock.
     - `_generate_egg_batches()`: Produces daily car loads using a Poisson process.

@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import random
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Generator, Optional
 
 import numpy as np
@@ -21,6 +21,59 @@ class EggBatch:
     source: str
     eggs: int
     target_segment: str  # "qs" or "standard"
+    pre_hatch_slot_id: Optional[str] = None
+    hatch_slot_id: Optional[str] = None
+
+
+@dataclass
+class BarnPlace:
+    """Represents a barn place that can mix multiple batches."""
+
+    place_id: str
+    capacity: int
+    segment: str
+    occupants: dict[str, dict[str, int]] = field(default_factory=dict)
+    occupied: int = 0
+    cleaning_until: float = 0.0
+
+    def can_accept(self, amount: int, now: float) -> bool:
+        return now >= self.cleaning_until and (self.capacity - self.occupied) >= amount
+
+    def add_batch(
+        self,
+        batch_id: str,
+        chicks: int,
+        pre_hatch_slot_id: Optional[str] = None,
+        hatch_slot_id: Optional[str] = None,
+    ) -> None:
+        entry = self.occupants.setdefault(
+            batch_id,
+            {
+                "chicks": 0,
+                "pre_hatch_slot_id": pre_hatch_slot_id,
+                "hatch_slot_id": hatch_slot_id,
+            },
+        )
+        entry["chicks"] += chicks
+        if pre_hatch_slot_id is not None:
+            entry["pre_hatch_slot_id"] = pre_hatch_slot_id
+        if hatch_slot_id is not None:
+            entry["hatch_slot_id"] = hatch_slot_id
+        self.occupied += chicks
+
+    def remove_batch(self, batch_id: str) -> dict[str, int | str] | None:
+        entry = self.occupants.get(batch_id)
+        if not entry:
+            return None
+        chicks = int(entry.get("chicks", 0))
+        self.occupied = max(0, self.occupied - chicks)
+        self.occupants.pop(batch_id, None)
+        entry["chicks"] = chicks
+        return entry
+
+    @property
+    def remaining_capacity(self) -> int:
+        return self.capacity - self.occupied
 
 
 @dataclass
@@ -52,29 +105,28 @@ class ChickSimulation:
         self.env = simpy.Environment()
         self.capacity_plan: CapacityPlan = derive_capacity(cfg)
 
-        self.pre_hatch_slots = simpy.Container(
-            self.env,
-            capacity=self.capacity_plan.total_pre_hatch_slots,
-            init=self.capacity_plan.total_pre_hatch_slots,
+        self.pre_hatch_slots = simpy.Store(
+            self.env, capacity=self.capacity_plan.total_pre_hatch_slots
         )
-        self.hatch_slots = simpy.Container(
-            self.env,
-            capacity=self.capacity_plan.total_hatch_slots,
-            init=self.capacity_plan.total_hatch_slots,
+        self.hatch_slots = simpy.Store(
+            self.env, capacity=self.capacity_plan.total_hatch_slots
         )
+        self.pre_hatch_slot_map: dict[str, dict[str, int]] = {}
+        self.hatch_slot_map: dict[str, dict[str, int]] = {}
+
+        self._initialise_room_slots()
         self.truck_slots = simpy.Container(
             self.env,
             capacity=cfg.num_trucks * cfg.car_capacity_per_truck,
             init=cfg.num_trucks * cfg.car_capacity_per_truck,
         )
 
-        qs_capacity, standard_capacity = self._initialize_farm_capacity()
-        self.qs_farm_slots = simpy.Container(self.env, capacity=qs_capacity, init=qs_capacity)
-        self.standard_farm_slots = simpy.Container(
-            self.env,
-            capacity=standard_capacity,
-            init=standard_capacity,
-        )
+        qs_places, standard_places = self._initialize_barn_places()
+        self.barn_places: dict[str, list[BarnPlace]] = {
+            "qs": qs_places,
+            "standard": standard_places,
+        }
+        self.barn_allocation_lock = simpy.Resource(self.env, capacity=1)
 
         self.batch_counter = itertools.count()
         self.egg_sources = itertools.cycle(range(1, cfg.num_egg_sources + 1))
@@ -86,15 +138,57 @@ class ChickSimulation:
         self.env.process(self._generate_egg_batches())
         self.env.run(until=self.cfg.simulation_days)
 
-    def _initialize_farm_capacity(self) -> tuple[int, int]:
-        """Calculate QS and standard farm capacity buckets."""
+    def _initialise_room_slots(self) -> None:
+        """Populate pre-hatch and hatch slot stores with room/slot identifiers."""
 
-        total_capacity = (
-            self.cfg.num_farms * self.cfg.places_per_farm * self.cfg.chicks_per_place
-        )
-        qs_capacity = int(round(total_capacity * self.cfg.qs_ratio))
-        standard_capacity = total_capacity - qs_capacity
-        return qs_capacity, standard_capacity
+        total_sites = self.capacity_plan.sites_used
+        for site in range(total_sites):
+            for room in range(self.cfg.rooms_per_site):
+                for slot in range(self.cfg.cars_per_pre_hatch_room):
+                    slot_id = (
+                        f"pre_site-{site+1:02d}_room-{room+1:03d}_slot-{slot+1:02d}"
+                    )
+                    self.pre_hatch_slot_map[slot_id] = {
+                        "site": site + 1,
+                        "room": room + 1,
+                        "slot": slot + 1,
+                    }
+                    self.pre_hatch_slots.items.append(slot_id)
+
+                    hatch_slot_id = (
+                        f"hatch_site-{site+1:02d}_room-{room+1:03d}_slot-{slot+1:02d}"
+                    )
+                    self.hatch_slot_map[hatch_slot_id] = {
+                        "site": site + 1,
+                        "room": room + 1,
+                        "slot": slot + 1,
+                    }
+                    self.hatch_slots.items.append(hatch_slot_id)
+
+    def _initialize_barn_places(self) -> tuple[list[BarnPlace], list[BarnPlace]]:
+        """Create barn places for QS and standard segments."""
+
+        total_places = self.cfg.num_farms * self.cfg.places_per_farm
+        qs_place_count = int(round(total_places * self.cfg.qs_ratio))
+        qs_places: list[BarnPlace] = []
+        standard_places: list[BarnPlace] = []
+
+        for index in range(total_places):
+            farm_idx = index // self.cfg.places_per_farm + 1
+            place_idx = index % self.cfg.places_per_farm + 1
+            place_id = f"farm-{farm_idx:02d}-place-{place_idx:02d}"
+            segment = "qs" if index < qs_place_count else "standard"
+            place = BarnPlace(
+                place_id=place_id,
+                capacity=self.cfg.chicks_per_place,
+                segment=segment,
+            )
+            if segment == "qs":
+                qs_places.append(place)
+            else:
+                standard_places.append(place)
+
+        return qs_places, standard_places
 
     @staticmethod
     def _hours_to_days(hours: float) -> float:
@@ -176,17 +270,24 @@ class ChickSimulation:
     def _process_pre_hatch(self, batch: EggBatch) -> Generator[simpy.events.Event, None, None]:
         """Load a batch into pre-hatch capacity and wait for incubation."""
 
-        yield self.pre_hatch_slots.get(1)
+        slot_id = yield self.pre_hatch_slots.get()
+        slot_info = self.pre_hatch_slot_map[slot_id]
+        batch.pre_hatch_slot_id = slot_id
         self.logger.log(
             self.env.now,
             batch.batch_id,
             stage="pre_hatch",
             status="loaded",
             quantity=batch.eggs,
-            metadata={"remaining_slots": self.pre_hatch_slots.level},
+            metadata={
+                "slot_id": slot_id,
+                "site": slot_info["site"],
+                "room": slot_info["room"],
+                "slot": slot_info["slot"],
+            },
         )
         yield self.env.timeout(self.cfg.pre_hatch_days)
-        self.pre_hatch_slots.put(1)
+        yield self.pre_hatch_slots.put(slot_id)
 
     def _screen_eggs(self, batch: EggBatch) -> int:
         """Apply X-ray screening and vaccination losses."""
@@ -219,7 +320,9 @@ class ChickSimulation:
     ) -> Generator[simpy.events.Event, None, int]:
         """Move screened eggs through hatching and capture chick output."""
 
-        yield self.hatch_slots.get(1)
+        hatch_slot_id = yield self.hatch_slots.get()
+        hatch_slot_info = self.hatch_slot_map[hatch_slot_id]
+        batch.hatch_slot_id = hatch_slot_id
         hatch_duration = self.rng.uniform(*self.cfg.hatch_days_range)
         self.logger.log(
             self.env.now,
@@ -227,10 +330,16 @@ class ChickSimulation:
             stage="hatch_room",
             status="loaded",
             quantity=fertile_eggs,
-            metadata={"duration_days": hatch_duration},
+            metadata={
+                "duration_days": hatch_duration,
+                "slot_id": hatch_slot_id,
+                "site": hatch_slot_info["site"],
+                "room": hatch_slot_info["room"],
+                "slot": hatch_slot_info["slot"],
+            },
         )
         yield self.env.timeout(hatch_duration)
-        self.hatch_slots.put(1)
+        yield self.hatch_slots.put(hatch_slot_id)
 
         hatch_rate = self.rng.betavariate(self.cfg.hatch_alpha, self.cfg.hatch_beta)
         chicks = int(fertile_eggs * hatch_rate)
@@ -241,7 +350,14 @@ class ChickSimulation:
             stage="hatch_room",
             status="hatched",
             quantity=chicks,
-            metadata={"hatch_rate": hatch_rate, "losses": losses},
+            metadata={
+                "hatch_rate": hatch_rate,
+                "losses": losses,
+                "slot_id": hatch_slot_id,
+                "site": hatch_slot_info["site"],
+                "room": hatch_slot_info["room"],
+                "slot": hatch_slot_info["slot"],
+            },
         )
         if chicks <= 0:
             self.logger.log(
@@ -314,23 +430,54 @@ class ChickSimulation:
     ) -> Generator[simpy.events.Event, None, None]:
         """Reserve farm capacity for the batch and schedule the grow-out cycle."""
 
-        container = self.qs_farm_slots if batch.target_segment == "qs" else self.standard_farm_slots
-        yield container.get(chicks)
+        place = yield from self._acquire_barn_place(batch, chicks)
         self.logger.log(
             self.env.now,
             batch.batch_id,
             stage="farm_intake",
             status="placed",
             quantity=chicks,
-            metadata={"segment": batch.target_segment, "available_capacity": container.level},
+            metadata={
+                "segment": batch.target_segment,
+                "place_id": place.place_id,
+                "remaining_capacity": place.remaining_capacity,
+                "occupants": {
+                    occupant_id: info["chicks"]
+                    for occupant_id, info in place.occupants.items()
+                },
+            },
         )
-        self.env.process(self._manage_farm_cycle(batch, chicks, container))
+        self.env.process(self._manage_farm_cycle(batch, chicks, place))
+
+    def _acquire_barn_place(
+        self,
+        batch: EggBatch,
+        chicks: int,
+    ) -> Generator[simpy.events.Event, None, BarnPlace]:
+        """Find a barn place with enough free capacity, retrying until available."""
+
+        segment = batch.target_segment
+        while True:
+            with self.barn_allocation_lock.request() as req:
+                yield req
+                now = self.env.now
+                candidates = self.barn_places[segment]
+                for place in candidates:
+                    if place.can_accept(chicks, now):
+                        place.add_batch(
+                            batch.batch_id,
+                            chicks,
+                            pre_hatch_slot_id=batch.pre_hatch_slot_id,
+                            hatch_slot_id=batch.hatch_slot_id,
+                        )
+                        return place
+            yield self.env.timeout(0.5)
 
     def _manage_farm_cycle(
         self,
         batch: EggBatch,
         chicks: int,
-        container: simpy.Container,
+        place: BarnPlace,
     ):
         """Simulate the grow-out, slaughter, and cleaning cycle for a farm placement."""
         # Stage 8 continued: grow-out period
@@ -344,7 +491,11 @@ class ChickSimulation:
             stage="grow_out",
             status="completed",
             quantity=survivors,
-            metadata={"losses": losses, "survival_rate": survival_rate},
+            metadata={
+                "losses": losses,
+                "survival_rate": survival_rate,
+                "place_id": place.place_id,
+            },
         )
 
         # Stage 9: send to slaughter
@@ -354,6 +505,7 @@ class ChickSimulation:
             stage="slaughter",
             status="shipped",
             quantity=survivors,
+            metadata={"place_id": place.place_id},
         )
         self.slaughter_records.append(
             SlaughterRecord(
@@ -365,15 +517,35 @@ class ChickSimulation:
         )
 
         # Stage 10: cleaning window keeps capacity reserved
-        yield self.env.timeout(self.cfg.cleaning_days)
-        container.put(chicks)
-        self.logger.log(
-            self.env.now,
-            batch.batch_id,
-            stage="farm_place",
-            status="available",
-            quantity=chicks,
-        )
+        occupant_details = place.remove_batch(batch.batch_id)
+        if place.occupied == 0:
+            place.cleaning_until = self.env.now + self.cfg.cleaning_days
+            yield self.env.timeout(self.cfg.cleaning_days)
+            place.cleaning_until = 0.0
+            self.logger.log(
+                self.env.now,
+                batch.batch_id,
+                stage="farm_place",
+                status="available",
+                quantity=chicks,
+                metadata={"place_id": place.place_id},
+            )
+        else:
+            self.logger.log(
+                self.env.now,
+                batch.batch_id,
+                stage="farm_place",
+                status="partial_release",
+                quantity=chicks,
+                metadata={
+                    "place_id": place.place_id,
+                    "remaining_capacity": place.remaining_capacity,
+                    "occupants": {
+                        occupant_id: info["chicks"]
+                        for occupant_id, info in place.occupants.items()
+                    },
+                },
+            )
 
     @property
     def slaughtered_after_warmup(self) -> list[int]:
