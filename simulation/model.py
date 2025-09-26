@@ -387,7 +387,8 @@ class ChickSimulation:
         return None
 
     def _manage_farm_cycle(self, shipment_id: str, amount: int, place: BarnPlace):
-        yield self.env.timeout(self.cfg.grow_out_days)
+        grow_out_time = self.rng.uniform(*self.cfg.grow_out_days_range)
+        yield self.env.timeout(grow_out_time)
         survival_rate = self.rng.betavariate(self.cfg.farm_alpha, self.cfg.farm_beta)
         survivors = int(round(amount * survival_rate))
         losses = amount - survivors

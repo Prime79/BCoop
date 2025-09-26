@@ -40,8 +40,8 @@ class SimulationConfig:
     sort_and_vaccinate_hours: float = 6.0
     load_to_transport_hours: float = 6.0
     transport_time_days: float = 1.0
-    grow_out_days: int = 56
-    cleaning_days: int = 7
+    grow_out_days_range: Tuple[int, int] = (35, 42)
+    cleaning_days: int = 12
 
     chicks_per_truck: int = 3_200
     active_trucks: int = 120
