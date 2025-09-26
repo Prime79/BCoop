@@ -11,6 +11,7 @@ import numpy as np
 import simpy
 
 from .config import CapacityPlan, FarmSpec, SimulationConfig, derive_capacity
+from flow_writer import FlowWriter
 from .logger import EventLogger
 
 
@@ -89,6 +90,7 @@ class ChickSimulation:
 
         self.slaughter_records: List[SlaughterRecord] = []
         self._timestamp_cache: Optional[str] = None
+        self.flow_writer = FlowWriter(self.cfg.flow_log_path)
 
     def _populate_machine_slots(self) -> None:
         for machine in range(1, self.cfg.pre_hatch_machines + 1):
@@ -114,6 +116,7 @@ class ChickSimulation:
     def run(self) -> None:
         self.env.process(self._generate_shipments())
         self.env.run(until=self.cfg.simulation_days)
+        self.flow_writer.close()
 
     def _current_timestamp(self) -> str:
         return (self.cfg.start_date + timedelta(days=self.env.now)).isoformat()
@@ -179,50 +182,76 @@ class ChickSimulation:
         total_chicks = sum(result.chicks for result in cart_results)
         total_hatch_losses = sum(result.hatch_losses for result in cart_results)
 
-        self._log(
+        self.flow_writer.log(
             shipment_id,
-            "pre_hatch",
-            "loaded",
-            eggs,
-            {"cart_count": len(cart_results)},
+            resource_id="inventory",
+            resource_type="inventory",
+            from_state={"status": "arrived"},
+            to_state={"status": "to_pre_hatch", "carts": len(cart_results)},
+            event_ts=self._current_timestamp(),
+            quantity=eggs,
         )
-        self._log(
+        self.flow_writer.log(
             shipment_id,
-            "xray_screen",
-            "discarded",
-            total_discarded,
-            {"cart_count": len(cart_results)},
+            resource_id="xray",
+            resource_type="process",
+            from_state={"status": "before"},
+            to_state={"status": "discarded"},
+            event_ts=self._current_timestamp(),
+            quantity=total_discarded,
         )
-        self._log(
+        self.flow_writer.log(
             shipment_id,
-            "hatch_room",
-            "loaded",
-            total_fertile,
-            {"cart_count": len(cart_results)},
+            resource_id="hatch_room",
+            resource_type="process",
+            from_state={"fertile": total_fertile + total_discarded},
+            to_state={"fertile": total_fertile},
+            event_ts=self._current_timestamp(),
+            quantity=total_fertile,
         )
-        self._log(
+        self.flow_writer.log(
             shipment_id,
-            "hatch_room",
-            "hatched",
-            total_chicks,
-            {"losses": total_hatch_losses},
+            resource_id="hatch_room",
+            resource_type="process",
+            from_state={"fertile": total_fertile},
+            to_state={"chicks": total_chicks, "losses": total_hatch_losses},
+            event_ts=self._current_timestamp(),
+            quantity=total_chicks,
         )
 
         if total_chicks <= 0:
-            self._log(shipment_id, "hatch_room", "empty_shipment", 0)
+            self.flow_writer.log(
+                shipment_id,
+                resource_id="hatch_room",
+                resource_type="process",
+                from_state={"status": "empty"},
+                to_state=None,
+                event_ts=self._current_timestamp(),
+                quantity=0,
+            )
             return
 
         yield self.env.timeout(self.cfg.sort_and_vaccinate_hours / 24)
-        self._log(shipment_id, "processing", "sorted", total_chicks)
+        self.flow_writer.log(
+            shipment_id,
+            resource_id="processing",
+            resource_type="process",
+            from_state={"status": "pre_processing"},
+            to_state={"status": "processed"},
+            event_ts=self._current_timestamp(),
+            quantity=total_chicks,
+        )
 
         yield self.env.timeout(self.cfg.load_to_transport_hours / 24)
         trucks_needed = max(1, math.ceil(total_chicks / self.cfg.chicks_per_truck))
-        self._log(
+        self.flow_writer.log(
             shipment_id,
-            "transport_loading",
-            "scheduled",
-            total_chicks,
-            {"trucks": trucks_needed},
+            resource_id="transport_loading",
+            resource_type="logistics",
+            from_state={"status": "scheduled"},
+            to_state={"trucks": trucks_needed},
+            event_ts=self._current_timestamp(),
+            quantity=total_chicks,
         )
 
         remaining_chicks = total_chicks
@@ -233,20 +262,24 @@ class ChickSimulation:
             remaining_chicks -= load
             yield self.truck_slots.get(1)
             truck_id = f"{shipment_id}-truck-{truck_counter:02d}"
-            self._log(
+            self.flow_writer.log(
                 shipment_id,
-                "transport_loading",
-                "departed",
-                load,
-                {"truck_id": truck_id},
+                resource_id=truck_id,
+                resource_type="truck",
+                from_state={"status": "loading"},
+                to_state={"status": "in_transit"},
+                event_ts=self._current_timestamp(),
+                quantity=load,
             )
             yield self.env.timeout(self.cfg.transport_time_days)
-            self._log(
+            self.flow_writer.log(
                 shipment_id,
-                "transport",
-                "arrived",
-                load,
-                {"truck_id": truck_id},
+                resource_id=truck_id,
+                resource_type="truck",
+                from_state={"status": "in_transit"},
+                to_state={"status": "arrived"},
+                event_ts=self._current_timestamp(),
+                quantity=load,
             )
             yield from self._place_truck(shipment_id, truck_id, load)
             self.truck_slots.put(1)
@@ -255,21 +288,25 @@ class ChickSimulation:
         self, shipment_id: str, cart_id: str, eggs: int
     ) -> simpy.events.Event:
         slot_id = yield self.pre_hatch_slots.get()
-        self._log(
-            cart_id,
-            "pre_hatch_cart",
-            "loaded",
-            eggs,
-            {"shipment_id": shipment_id, "machine_slot": slot_id},
+        self.flow_writer.log(
+            shipment_id,
+            resource_id=slot_id,
+            resource_type="setter_slot",
+            from_state={"status": "empty"},
+            to_state={"cart_id": cart_id, "eggs": eggs},
+            event_ts=self._current_timestamp(),
+            quantity=eggs,
         )
         yield self.env.timeout(self.cfg.pre_hatch_days)
         yield self.pre_hatch_slots.put(slot_id)
-        self._log(
-            cart_id,
-            "pre_hatch_cart",
-            "released",
-            eggs,
-            {"shipment_id": shipment_id, "machine_slot": slot_id},
+        self.flow_writer.log(
+            shipment_id,
+            resource_id=slot_id,
+            resource_type="setter_slot",
+            from_state={"cart_id": cart_id, "eggs": eggs},
+            to_state={"status": "released"},
+            event_ts=self._current_timestamp(),
+            quantity=eggs,
         )
 
         pass_rate = self.rng.betavariate(self.cfg.xray_alpha, self.cfg.xray_beta)
@@ -277,12 +314,14 @@ class ChickSimulation:
         discarded = eggs - fertile
 
         hatch_slot_id = yield self.hatch_slots.get()
-        self._log(
-            cart_id,
-            "hatch_cart",
-            "loaded",
-            fertile,
-            {"shipment_id": shipment_id, "machine_slot": hatch_slot_id},
+        self.flow_writer.log(
+            shipment_id,
+            resource_id=hatch_slot_id,
+            resource_type="hatcher_slot",
+            from_state={"status": "empty"},
+            to_state={"cart_id": cart_id, "fertile": fertile},
+            event_ts=self._current_timestamp(),
+            quantity=fertile,
         )
         hatch_duration = self.rng.uniform(*self.cfg.hatch_days_range)
         yield self.env.timeout(hatch_duration)
@@ -292,12 +331,14 @@ class ChickSimulation:
         hatch_losses = fertile - chicks
 
         yield self.hatch_slots.put(hatch_slot_id)
-        self._log(
-            cart_id,
-            "hatch_cart",
-            "hatched",
-            chicks,
-            {"shipment_id": shipment_id, "machine_slot": hatch_slot_id, "losses": hatch_losses},
+        self.flow_writer.log(
+            shipment_id,
+            resource_id=hatch_slot_id,
+            resource_type="hatcher_slot",
+            from_state={"cart_id": cart_id, "fertile": fertile},
+            to_state={"chicks": chicks, "losses": hatch_losses},
+            event_ts=self._current_timestamp(),
+            quantity=chicks,
         )
 
         return CartResult(
@@ -343,6 +384,7 @@ class ChickSimulation:
                     continue
                 available = confirmed_place.remaining_capacity
                 portion = min(available, remaining)
+                before_mix = confirmed_place.occupants.copy()
                 confirmed_place.add(shipment_id, portion)
                 remaining -= portion
                 self._log(
@@ -364,6 +406,16 @@ class ChickSimulation:
                         amount=portion,
                         place=confirmed_place,
                     )
+                )
+                self.flow_writer.log(
+                    shipment_id,
+                    resource_id=confirmed_place.place_id,
+                    resource_type="barn",
+                    from_state=before_mix,
+                    to_state=confirmed_place.occupants.copy(),
+                    event_ts=self._current_timestamp(),
+                    quantity=portion,
+                    metadata={"farm": confirmed_place.farm_name, "truck_id": truck_id},
                 )
 
     def _find_next_place(self) -> Optional[BarnPlace]:
@@ -417,7 +469,19 @@ class ChickSimulation:
             )
         )
 
+        before_mix = place.occupants.copy()
         removed = place.decrement(shipment_id, amount)
+        after_mix = place.occupants.copy()
+        self.flow_writer.log(
+            shipment_id,
+            resource_id=place.place_id,
+            resource_type="barn",
+            from_state=before_mix,
+            to_state=after_mix,
+            event_ts=self._current_timestamp(),
+            quantity=removed,
+            metadata={"farm": place.farm_name, "status": "removal"},
+        )
         if place.occupied == 0:
             place.cleaning_until = self.env.now + self.cfg.cleaning_days
             self._log(

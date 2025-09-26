@@ -13,6 +13,9 @@ def main() -> None:
     db_path = Path(cfg.db_path)
     if db_path.exists():
         db_path.unlink()
+    flow_path = Path(cfg.flow_log_path)
+    if flow_path.exists():
+        flow_path.unlink()
 
     logger = EventLogger(cfg.db_path)
     simulation = ChickSimulation(cfg, logger)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import List, Sequence, Tuple
 
 
@@ -44,7 +45,7 @@ class SimulationConfig:
     grow_out_days_range: Tuple[int, int] = (35, 42)
     cleaning_days: int = 12
 
-    chicks_per_truck: int = 3_200
+    chicks_per_truck: int = 57_600
     active_trucks: int = 120
 
     xray_alpha: float = 85.0
@@ -59,6 +60,7 @@ class SimulationConfig:
 
     db_path: str = "hatchery_events.sqlite"
     start_date: datetime = datetime(2025, 1, 1)
+    flow_log_path: Path = Path("flow_log.parquet")
 
     @property
     def farm_specs(self) -> Sequence[FarmSpec]:
