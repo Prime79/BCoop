@@ -395,7 +395,11 @@ class ChickSimulation:
             "grow_out",
             "completed",
             survivors,
-            {"losses": losses, "place_id": place.place_id, "farm": place.farm_name},
+            {
+                "losses": losses,
+                "place_id": place.place_id,
+                "farm": place.farm_name,
+            },
         )
         self._log(
             shipment_id,
@@ -421,10 +425,30 @@ class ChickSimulation:
                 "farm_place",
                 "available",
                 removed,
-                {"place_id": place.place_id, "farm": place.farm_name},
+                {
+                    "place_id": place.place_id,
+                    "farm": place.farm_name,
+                    "removed_shipment": shipment_id,
+                    "removed_amount": removed,
+                },
             )
             yield self.env.timeout(self.cfg.cleaning_days)
             place.cleaning_until = 0.0
+        else:
+            self._log(
+                shipment_id,
+                "farm_place",
+                "partial_release",
+                removed,
+                {
+                    "place_id": place.place_id,
+                    "farm": place.farm_name,
+                    "remaining_capacity": place.remaining_capacity,
+                    "mix": place.occupants.copy(),
+                    "removed_shipment": shipment_id,
+                    "removed_amount": removed,
+                },
+            )
 
     @property
     def slaughtered_after_warmup(self) -> List[int]:
