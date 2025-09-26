@@ -2,3 +2,5 @@
 *.sqlite
 *.sqlite-*
 .DS_Store
+Highcharts-12/
+Highcharts-Gantt-12/
