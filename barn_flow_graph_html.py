@@ -54,7 +54,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
         title = f"Utókeltető {key.split('-')[-1]} — kattints a részletekért"
         hotspot_elems.append(
             f'<g class="hotspot" data-key="{key}">'
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="32" fill="#000" fill-opacity="0.01" stroke="none" />'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="40" fill="#000" fill-opacity="0.08" stroke="none" />'
             f'<title>{title}</title>'
             f'</g>'
         )
@@ -65,7 +65,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
         title = f"Előkeltető {key.split('-')[-1]} — kattints a részletekért"
         hotspot_elems.append(
             f'<g class="hotspot" data-key="{key}">'
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="32" fill="#000" fill-opacity="0.01" stroke="none" />'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="40" fill="#000" fill-opacity="0.08" stroke="none" />'
             f'<title>{title}</title>'
             f'</g>'
         )
@@ -107,9 +107,6 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
       <div id=\"chart-temp\" class=\"chart\"></div>
       <div id=\"chart-hum\" class=\"chart\"></div>
       <div id=\"chart-co2\" class=\"chart\"></div>
-      <div id=\"chart-air\" class=\"chart\"></div>
-      <div id=\"chart-turn\" class=\"chart\" style=\"display:none\"></div>
-      <div id=\"chart-noise\" class=\"chart\"></div>
     </div>
   </div>
 
@@ -122,9 +119,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
     const elTemp = document.getElementById('chart-temp');
     const elHum = document.getElementById('chart-hum');
     const elCO2 = document.getElementById('chart-co2');
-    const elAir = document.getElementById('chart-air');
-    const elTurn = document.getElementById('chart-turn');
-    const elNoise = document.getElementById('chart-noise');
+    const elAir = null, elTurn = null, elNoise = null;
     const svgEl = document.querySelector('svg');
 
     // Nice, readable palette per metric
@@ -265,7 +260,34 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
       const co2  = genCO2();
       const air  = genAir();
       const noise= genNoise();
-      const opts = (name, data, unit, color) => ({ chart:{type:'line', backgroundColor:'#0e172a'}, title:{text:name,style:{color:'#e6f0ff'}}, xAxis:{type:'datetime',labels:{style:{color:'#c8cfdb'}}}, yAxis:{title:{text:unit}, gridLineColor:'#223'}, legend:{enabled:false}, tooltip:{ pointFormat:'<b>{{point.y}}</b> '+unit }, series:[{name,data,color, lineWidth:2.2}], credits:{enabled:false} });
+      const opts = (name, data, unit, color) => ({
+        chart: {
+          backgroundColor: 'transparent',
+          zooming: { type: 'x' }
+        },
+        title: { text: name, style: { color: '#e6f0ff' } },
+        subtitle: { text: (document.ontouchstart === undefined ? 'Click and drag to zoom in' : 'Pinch to zoom in'), style:{ color:'#9aa4b2' } },
+        xAxis: { type: 'datetime', labels: { style: { color: '#c8cfdb' } } },
+        yAxis: { title: { text: unit, style:{color:'#c8cfdb'} }, gridLineColor: '#223' },
+        legend: { enabled: false },
+        tooltip: { backgroundColor:'#0f1a2e', borderColor:'#2a3450', style:{color:'#e6f0ff'}, pointFormat:'<b>{{point.y}}</b> '+unit },
+        plotOptions: {
+          area: {
+            fillColor: {
+              linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+              stops: [
+                [0, Highcharts.color(color).setOpacity(0.25).get('rgba')],
+                [1, Highcharts.color(color).setOpacity(0.03).get('rgba')]
+              ]
+            },
+            marker: { radius: 2 },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        series: [{ type:'area', name, data, color }],
+        credits: { enabled: false }
+      });
       Highcharts.chart(elTemp, opts('Hőmérséklet', temp, '°C', COLORS.temp));
       Highcharts.chart(elHum,  opts('Relatív páratartalom', hum, '%', COLORS.hum));
       Highcharts.chart(elCO2,  opts('CO₂ koncentráció', co2, '%', COLORS.co2));

@@ -92,7 +92,7 @@
 </g>
 
 <g transform="translate(1400.0,380.0)"><text class="label" x="0" y="0" font-size="15" opacity="0.85">Istálló állapotváltozásai</text><text class="label" x="0" y="24" font-size="13" opacity="0.75">2025-02-02 00:01 +57600 shipment-7 · shipment-7-truck-01</text><text class="label" x="0" y="44" font-size="13" opacity="0.75">2025-02-27 01:29 +13841 shipment-75 · shipment-75-truck-02</text><text class="label" x="0" y="64" font-size="13" opacity="0.75">2025-02-27 02:14 +17359 shipment-79 · shipment-79-truck-01</text></g>
-<g id="hotspots"><g class="hotspot" data-key="hatcher-07"><circle cx="680.0" cy="220.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Utókeltető 07 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-10"><circle cx="680.0" cy="360.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Utókeltető 10 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-06"><circle cx="680.0" cy="500.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Utókeltető 06 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-09"><circle cx="680.0" cy="640.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Utókeltető 09 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-08"><circle cx="680.0" cy="780.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Utókeltető 08 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-07"><circle cx="360.0" cy="220.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Előkeltető 07 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-11"><circle cx="360.0" cy="360.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Előkeltető 11 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-06"><circle cx="360.0" cy="500.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Előkeltető 06 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-08"><circle cx="360.0" cy="640.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Előkeltető 08 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-10"><circle cx="360.0" cy="780.0" r="32" fill="#000" fill-opacity="0.01" stroke="none" /><title>Előkeltető 10 — kattints a részletekért</title></g></g>
+<g id="hotspots"><g class="hotspot" data-key="hatcher-07"><circle cx="680.0" cy="220.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 07 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-10"><circle cx="680.0" cy="360.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 10 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-06"><circle cx="680.0" cy="500.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 06 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-09"><circle cx="680.0" cy="640.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 09 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-08"><circle cx="680.0" cy="780.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 08 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-07"><circle cx="360.0" cy="220.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 07 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-11"><circle cx="360.0" cy="360.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 11 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-06"><circle cx="360.0" cy="500.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 06 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-08"><circle cx="360.0" cy="640.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 08 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-10"><circle cx="360.0" cy="780.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 10 — kattints a részletekért</title></g></g>
 </svg></div>
 
   <div id="popover" class="popover">
@@ -104,9 +104,6 @@
       <div id="chart-temp" class="chart"></div>
       <div id="chart-hum" class="chart"></div>
       <div id="chart-co2" class="chart"></div>
-      <div id="chart-air" class="chart"></div>
-      <div id="chart-turn" class="chart" style="display:none"></div>
-      <div id="chart-noise" class="chart"></div>
     </div>
   </div>
 
@@ -137,9 +134,7 @@
     const elTemp = document.getElementById('chart-temp');
     const elHum = document.getElementById('chart-hum');
     const elCO2 = document.getElementById('chart-co2');
-    const elAir = document.getElementById('chart-air');
-    const elTurn = document.getElementById('chart-turn');
-    const elNoise = document.getElementById('chart-noise');
+    const elAir = null, elTurn = null, elNoise = null;
     const svgEl = document.querySelector('svg');
 
     // Nice, readable palette per metric
@@ -280,7 +275,34 @@
       const co2  = genCO2();
       const air  = genAir();
       const noise= genNoise();
-      const opts = (name, data, unit, color) => ({ chart:{type:'line', backgroundColor:'#0e172a'}, title:{text:name,style:{color:'#e6f0ff'}}, xAxis:{type:'datetime',labels:{style:{color:'#c8cfdb'}}}, yAxis:{title:{text:unit}, gridLineColor:'#223'}, legend:{enabled:false}, tooltip:{ pointFormat:'<b>{{point.y}}</b> '+unit }, series:[{name,data,color, lineWidth:2.2}], credits:{enabled:false} });
+      const opts = (name, data, unit, color) => ({
+        chart: {
+          backgroundColor: 'transparent',
+          zooming: { type: 'x' }
+        },
+        title: { text: name, style: { color: '#e6f0ff' } },
+        subtitle: { text: (document.ontouchstart === undefined ? 'Click and drag to zoom in' : 'Pinch to zoom in'), style:{ color:'#9aa4b2' } },
+        xAxis: { type: 'datetime', labels: { style: { color: '#c8cfdb' } } },
+        yAxis: { title: { text: unit, style:{color:'#c8cfdb'} }, gridLineColor: '#223' },
+        legend: { enabled: false },
+        tooltip: { backgroundColor:'#0f1a2e', borderColor:'#2a3450', style:{color:'#e6f0ff'}, pointFormat:'<b>{{point.y}}</b> '+unit },
+        plotOptions: {
+          area: {
+            fillColor: {
+              linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+              stops: [
+                [0, Highcharts.color(color).setOpacity(0.25).get('rgba')],
+                [1, Highcharts.color(color).setOpacity(0.03).get('rgba')]
+              ]
+            },
+            marker: { radius: 2 },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        series: [{ type:'area', name, data, color }],
+        credits: { enabled: false }
+      });
       Highcharts.chart(elTemp, opts('Hőmérséklet', temp, '°C', COLORS.temp));
       Highcharts.chart(elHum,  opts('Relatív páratartalom', hum, '%', COLORS.hum));
       Highcharts.chart(elCO2,  opts('CO₂ koncentráció', co2, '%', COLORS.co2));
