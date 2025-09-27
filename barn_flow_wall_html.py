@@ -107,7 +107,8 @@ def build_page(title: str, panels: List[Tuple[str, str, Dict[str, List[Tuple[str
     .modal .panel {{ width: min(880px, 92vw); background: #0e172a; border: 1px solid #2a3450; border-radius: 12px; padding: 12px; }}
     .modal header {{ display:flex; align-items:center; justify-content:space-between; padding: 8px 8px 12px; color:#e6f0ff; font: 600 16px system-ui; }}
     .close {{ cursor:pointer; border:none; background:transparent; color:#9aa4b2; font-size:18px; }}
-    #chart {{ height: 420px; }}
+    .charts {{ display: grid; grid-template-columns: 1fr; gap: 16px; padding: 8px; }}
+    .chart {{ height: 260px; }}
   </style>
 </head>
 <body>
@@ -121,7 +122,14 @@ def build_page(title: str, panels: List[Tuple[str, str, Dict[str, List[Tuple[str
         <span id=\"modal-title\">Utókeltető</span>
         <button class=\"close\" onclick=\"document.getElementById('modal').style.display='none'\">✕</button>
       </header>
-      <div id=\"chart\"></div>
+      <div class=\"charts\">
+        <div id=\"chart-temp\" class=\"chart\"></div>
+        <div id=\"chart-hum\" class=\"chart\"></div>
+        <div id=\"chart-co2\" class=\"chart\"></div>
+        <div id=\"chart-air\" class=\"chart\"></div>
+        <div id=\"chart-turn\" class=\"chart\" style=\"display:none\"></div>
+        <div id=\"chart-noise\" class=\"chart\"></div>
+      </div>
     </div>
   </div>
 
@@ -131,26 +139,63 @@ def build_page(title: str, panels: List[Tuple[str, str, Dict[str, List[Tuple[str
     const DATA = {data_json};
     const modal = document.getElementById('modal');
     const titleEl = document.getElementById('modal-title');
-    const chartEl = document.getElementById('chart');
+    const elTemp = document.getElementById('chart-temp');
+    const elHum = document.getElementById('chart-hum');
+    const elCO2 = document.getElementById('chart-co2');
+    const elAir = document.getElementById('chart-air');
+    const elTurn = document.getElementById('chart-turn');
+    const elNoise = document.getElementById('chart-noise');
+    function randRange(min, max) {{ return min + Math.random() * (max - min); }}
+    function genLine(baseMin, baseMax, points=48, jitter=0.2) {{
+      const out = [];
+      const now = Date.now();
+      for (let i=points-1; i>=0; i--) {{
+        const t = now - i*30*60*1000; // 30 perc
+        const base = (baseMin + baseMax)/2;
+        const amp = (baseMax - baseMin)/2;
+        const val = base + (Math.sin(i/6)*amp*0.6) + (Math.random()-0.5)*amp*jitter;
+        out.push([t, Number(val.toFixed(2))]);
+      }}
+      return out;
+    }}
+
     function openChartFor(key) {{
-      const series = DATA[key] || [];
       const pretty = (key.split('::')[1] || key);
-      titleEl.textContent = `Utókeltető ${{pretty.split('-').pop()}} — szállítmány megoszlás`;
+      const isSetter = pretty.startsWith('setter-');
+      const label = isSetter ? 'Előkeltető' : 'Utókeltető';
+      titleEl.textContent = `${{label}} ${{pretty.split('-').pop()}} — gép paraméterei`;
       modal.style.display = 'flex';
       if (typeof Highcharts === 'undefined') {{
-        chartEl.innerHTML = '<div style="color:#e6f0ff;padding:12px">Highcharts nincs betöltve.</div>';
+        elTemp.innerHTML = '<div style="color:#e6f0ff;padding:12px">Highcharts nincs betöltve.</div>';
         return;
       }}
-      Highcharts.chart(chartEl, {{
-        chart: {{ type: 'column', backgroundColor: '#0e172a' }},
-        title: {{ text: null }},
-        xAxis: {{ type: 'category', labels: {{ style: {{ color: '#c8cfdb' }} }} }},
-        yAxis: {{ title: {{ text: 'db' }}, gridLineColor: '#223' }},
-        legend: {{ enabled: false }},
-        tooltip: {{ pointFormat: '<b>{{point.y:.0f}}</b> csibe' }},
-        series: [{{ name: 'Szállítmány', data: series, color: '#5f6d85' }}],
-        credits: {{ enabled: false }},
-      }});
+      // Generate random time series per guideline ranges
+      const temp = isSetter ? genLine(37.5, 38.0) : genLine(36.8, 37.2);
+      const hum = isSetter ? genLine(50, 55) : genLine(65, 75);
+      const co2 = genLine(0.2, 0.5); // %
+      const air = genLine(1.0, 2.0); // m/s szellőzés proxy
+      const noise = genLine(45, 65); // dB proxy
+      const turn = genLine(10, 30); // forgatás esemény gyakoriság proxy
+
+      elTurn.style.display = isSetter ? 'block' : 'none';
+
+      const opts = (name, data, unit) => ({
+        chart: { type: 'line', backgroundColor: '#0e172a' },
+        title: { text: name, style: { color: '#e6f0ff' } },
+        xAxis: { type: 'datetime', labels: { style: { color: '#c8cfdb' } } },
+        yAxis: { title: { text: unit }, gridLineColor: '#223' },
+        legend: { enabled: false },
+        tooltip: { pointFormat: '<b>{{point.y}}</b> ' + unit },
+        series: [{ name, data, color: '#5f6d85' }],
+        credits: { enabled: false },
+      });
+
+      Highcharts.chart(elTemp, opts('Hőmérséklet', temp, '°C'));
+      Highcharts.chart(elHum, opts('Relatív páratartalom', hum, '%'));
+      Highcharts.chart(elCO2, opts('CO₂ koncentráció', co2, '%'));
+      Highcharts.chart(elAir, opts('Légáramlás', air, 'm/s'));
+      if (isSetter) Highcharts.chart(elTurn, opts('Tojás forgatás', turn, 'alkalom/nap'));
+      Highcharts.chart(elNoise, opts('Zaj / rezgésszint', noise, 'dB'));
     }}
 
     document.addEventListener('click', (e) => {{
@@ -205,11 +250,22 @@ def main() -> None:
         # inject hotspots per-barn with barn-qualified data-key
         nodes = ctx["nodes"]  # type: ignore
         hatcher_nodes = {k: v for k, v in nodes.items() if v.get("column") == "hatcher"}  # type: ignore
+        setter_nodes = {k: v for k, v in nodes.items() if v.get("column") == "setter"}  # type: ignore
         hotspot_elems: List[str] = []
         for key, spec in hatcher_nodes.items():
             x = float(spec["x"])  # type: ignore
             y = float(spec["y"])  # type: ignore
             title = f"Utókeltető {key.split('-')[-1]} — kattints a részletekért"
+            hotspot_elems.append(
+                f'<g class="hotspot" data-key="{barn_id}::{key}">'
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="32" fill="#000" fill-opacity="0.01" stroke="none" />'
+                f'<title>{title}</title>'
+                f'</g>'
+            )
+        for key, spec in setter_nodes.items():
+            x = float(spec["x"])  # type: ignore
+            y = float(spec["y"])  # type: ignore
+            title = f"Előkeltető {key.split('-')[-1]} — kattints a részletekért"
             hotspot_elems.append(
                 f'<g class="hotspot" data-key="{barn_id}::{key}">'
                 f'<circle cx="{x:.1f}" cy="{y:.1f}" r="32" fill="#000" fill-opacity="0.01" stroke="none" />'
