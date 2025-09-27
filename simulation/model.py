@@ -65,7 +65,15 @@ class SlaughterRecord:
 
 
 class ChickSimulation:
-    """Coordinate all SimPy processes for the hatchery-to-slaughter workflow."""
+    """Coordinate all SimPy processes for the hatchery → slaughter workflow.
+
+    Writes two streams:
+    - SQLite events (optional, for audit/debug; JSONL fallback if sqlite3 missing)
+    - Parquet flow log (authoritative input for graphs/analysis).
+
+    Parent‑pair is embedded into the Parquet `metadata` of the initial
+    `inventory` flow entry to avoid any SQLite dependency downstream.
+    """
 
     def __init__(self, cfg: SimulationConfig, logger: EventLogger) -> None:
         self.cfg = cfg
@@ -93,6 +101,7 @@ class ChickSimulation:
         self.flow_writer = FlowWriter(self.cfg.flow_log_path)
 
     def _populate_machine_slots(self) -> None:
+        """Pre‑allocate setter/hatcher slot identifiers into SimPy stores."""
         for machine in range(1, self.cfg.pre_hatch_machines + 1):
             for slot in range(1, self.cfg.pre_hatch_carts_per_machine + 1):
                 slot_id = f"setter-{machine:02d}-cart-{slot:02d}"
@@ -103,6 +112,7 @@ class ChickSimulation:
                 self.hatch_slots.items.append(slot_id)
 
     def _initialise_barn_places(self, specs: List[FarmSpec]) -> List[BarnPlace]:
+        """Expand farm capacity into evenly split barn places with capacities."""
         places: List[BarnPlace] = []
         for spec in specs:
             base = spec.capacity_chicks // spec.barns
@@ -114,6 +124,7 @@ class ChickSimulation:
         return places
 
     def run(self) -> None:
+        """Run the simulation until configured horizon and close flow log."""
         self.env.process(self._generate_shipments())
         self.env.run(until=self.cfg.simulation_days)
         self.flow_writer.close()
@@ -140,6 +151,7 @@ class ChickSimulation:
         )
 
     def _generate_shipments(self):  # type: ignore[override]
+        """Poisson process of shipments per day with cycling parent pairs."""
         mean_shipments = self.capacity_plan.shipments_per_day
         while True:
             shipments_today = max(1, np.random.poisson(mean_shipments))
@@ -152,6 +164,7 @@ class ChickSimulation:
             yield self.env.timeout(max(0.0, 1.0 - shipments_today * interval))
 
     def _handle_shipment(self, shipment_id: str, parent_pair_id: int):  # type: ignore[override]
+        """Process one shipment through setter, hatcher, processing and trucks."""
         eggs = self.cfg.shipment_eggs
         farm_cars = math.ceil(eggs / self.cfg.farm_car_eggs)
         self._log(
@@ -185,6 +198,7 @@ class ChickSimulation:
         total_chicks = sum(result.chicks for result in cart_results)
         total_hatch_losses = sum(result.hatch_losses for result in cart_results)
 
+        # Write the parent_pair into the flow log so downstream analysis doesn't need SQLite
         self.flow_writer.log(
             shipment_id,
             resource_id="inventory",
@@ -193,6 +207,7 @@ class ChickSimulation:
             to_state={"status": "to_pre_hatch", "carts": len(cart_results)},
             event_ts=self._current_timestamp(),
             quantity=eggs,
+            metadata={"parent_pair": f"parent-pair-{parent_pair_id}"},
         )
         self.flow_writer.log(
             shipment_id,
@@ -290,6 +305,7 @@ class ChickSimulation:
     def _process_cart(
         self, shipment_id: str, cart_id: str, eggs: int
     ) -> simpy.events.Event:
+        """Run one cart through setter and hatcher, logging flow transitions."""
         slot_id = yield self.pre_hatch_slots.get()
         self.flow_writer.log(
             shipment_id,
@@ -355,6 +371,13 @@ class ChickSimulation:
         )
 
     def _place_truck(self, shipment_id: str, truck_id: str, load: int):
+        """Atomically place a truck's load: one barn log per affected place.
+
+        This avoids producing multiple incremental barn state changes per truck,
+        which previously led to small +/- corrections in timeline diffs.
+        """
+        # Build a placement plan: list of (place_id, amount)
+        plan: list[tuple[str, int]] = []
         remaining = load
         while remaining > 0:
             place: Optional[BarnPlace] = None
@@ -365,61 +388,58 @@ class ChickSimulation:
                     place = self._find_next_place()
                     if place is None:
                         next_clean = min(
-                            (
-                                p.cleaning_until
-                                for p in self.barn_places
-                                if p.cleaning_until > self.env.now
-                            ),
+                            (p.cleaning_until for p in self.barn_places if p.cleaning_until > self.env.now),
                             default=None,
                         )
-                        wait_time = (
-                            (next_clean - self.env.now) if next_clean is not None else 1.0
-                        )
+                        wait_time = (next_clean - self.env.now) if next_clean is not None else 1.0
                 if place is None:
                     yield self.env.timeout(max(0.1, wait_time or 1.0))
-
+            # After we have a candidate, check capacity just-in-time
             with self.barn_lock.request() as req:
                 yield req
-                # re-fetch to ensure capacity is still available after acquiring the lock
-                confirmed_place = self._find_specific_place(place.place_id)
-                if confirmed_place is None or confirmed_place.remaining_capacity <= 0:
-                    place = None
+                confirmed = self._find_specific_place(place.place_id)
+                if confirmed is None or confirmed.remaining_capacity <= 0:
                     continue
-                available = confirmed_place.remaining_capacity
-                portion = min(available, remaining)
-                before_mix = confirmed_place.occupants.copy()
-                confirmed_place.add(shipment_id, portion)
+                portion = min(confirmed.remaining_capacity, remaining)
+                if portion <= 0:
+                    continue
+                plan.append((confirmed.place_id, portion))
                 remaining -= portion
-                self._log(
-                    shipment_id,
-                    "farm_intake",
-                    "placed",
-                    portion,
-                    {
-                        "truck_id": truck_id,
-                        "place_id": confirmed_place.place_id,
-                        "farm": confirmed_place.farm_name,
-                        "remaining_capacity": confirmed_place.remaining_capacity,
-                        "mix": confirmed_place.occupants.copy(),
-                    },
-                )
-                self.env.process(
-                    self._manage_farm_cycle(
-                        shipment_id=shipment_id,
-                        amount=portion,
-                        place=confirmed_place,
-                    )
-                )
-                self.flow_writer.log(
-                    shipment_id,
-                    resource_id=confirmed_place.place_id,
-                    resource_type="barn",
-                    from_state=before_mix,
-                    to_state=confirmed_place.occupants.copy(),
-                    event_ts=self._current_timestamp(),
-                    quantity=portion,
-                    metadata={"farm": confirmed_place.farm_name, "truck_id": truck_id},
-                )
+
+        # Apply the plan: mutate places and write a single event per place
+        for place_id, amount in plan:
+            with self.barn_lock.request() as req:
+                yield req
+                confirmed_place = self._find_specific_place(place_id)
+                if confirmed_place is None:
+                    continue
+                before_mix = confirmed_place.occupants.copy()
+                confirmed_place.add(shipment_id, amount)
+                after_mix = confirmed_place.occupants.copy()
+            # Log concise intake event
+            self._log(
+                shipment_id,
+                "farm_intake",
+                "placed",
+                amount,
+                {
+                    "truck_id": truck_id,
+                    "place_id": place_id,
+                    "farm": confirmed_place.farm_name,
+                    "remaining_capacity": confirmed_place.remaining_capacity,
+                },
+            )
+            # Maintain compatibility: still write barn state snapshot, but once
+            self.flow_writer.log(
+                shipment_id,
+                resource_id=place_id,
+                resource_type="barn",
+                from_state=before_mix,
+                to_state=after_mix,
+                event_ts=self._current_timestamp(),
+                quantity=amount,
+                metadata={"farm": confirmed_place.farm_name, "truck_id": truck_id},
+            )
 
     def _find_next_place(self) -> Optional[BarnPlace]:
         total_places = len(self.barn_places)

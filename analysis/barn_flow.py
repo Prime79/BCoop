@@ -1,4 +1,16 @@
 from __future__ import annotations
+"""Barn‑centric flow analysis from Parquet only.
+
+This module reconstructs the flows that reach a given barn using only the
+append‑only Parquet log written by `FlowWriter`. It aggregates:
+
+- Shipments and their cart‑level contributions (setter/hatcher machines)
+- Barn state changes and truck arrivals
+- A compact timeline per shipment and a final snapshot for the barn
+
+No SQLite dependency: parent pairs are extracted from `metadata` of
+`resource_type == "inventory"` rows inside the Parquet file.
+"""
 
 import json
 from collections import defaultdict
@@ -9,10 +21,7 @@ from typing import Dict, List, Optional
 
 import polars as pl
 
-try:
-    import sqlite3  # type: ignore
-except ImportError:  # pragma: no cover - optional dependency
-    sqlite3 = None  # type: ignore
+sqlite3 = None  # SQLite no longer required for analysis; parent pairs read from flow log
 
 __all__ = [
     "BarnFlowBuilder",
@@ -26,7 +35,18 @@ __all__ = [
 
 @dataclass
 class CartContribution:
-    """Summary of a cart's path through setter and hatcher stages."""
+    """Summary of a cart's path through setter and hatcher stages.
+
+    Attributes:
+        cart_id: Logical cart identifier (shipment‑scoped).
+        setter_id: Setter machine slot that hosted this cart.
+        hatcher_id: Hatcher machine slot that hosted this cart.
+        eggs: Eggs loaded into the cart at setter.
+        chicks: Chicks produced after hatching.
+        losses: Hatching losses.
+        barn_chicks: Chicks attributed to the target barn from this cart.
+        barn_eggs: Eggs attributed to the target barn from this cart.
+    """
 
     cart_id: str
     setter_id: Optional[str]
@@ -40,7 +60,11 @@ class CartContribution:
 
 @dataclass
 class ShipmentTimeline:
-    """Key timestamps for a shipment across the production process."""
+    """Key timestamps for a shipment across the production process.
+
+    Missing values indicate unavailable or not‑yet‑observed events in the
+    Parquet stream.
+    """
 
     inventory_ready: Optional[datetime] = None
     setter_load: Optional[datetime] = None
@@ -56,7 +80,11 @@ class ShipmentTimeline:
 
 @dataclass
 class ShipmentFlow:
-    """Aggregated details for a shipment that delivered chicks to the barn."""
+    """Aggregated details for a shipment that delivered chicks to the barn.
+
+    Includes cart‑level contributions scaled to the quantity actually placed in
+    the target barn.
+    """
 
     shipment_id: str
     parent_pair: str
@@ -103,7 +131,12 @@ class BarnFlow:
 
 
 class BarnFlowBuilder:
-    """High-level helper that extracts barn-specific flow information from the simulation log."""
+    """High‑level helper that extracts barn‑specific flow information.
+
+    Reads only the Parquet flow log, and builds a structured view for a barn
+    at a cutoff time (or latest available). Parent pairs are taken from
+    `metadata` on inventory rows.
+    """
 
     def __init__(
         self,
@@ -114,6 +147,12 @@ class BarnFlowBuilder:
         self.db_path = Path(db_path)
 
     def build(self, barn_id: str, cutoff: Optional[datetime] = None) -> BarnFlow:
+        """Build a `BarnFlow` snapshot for the given barn.
+
+        Args:
+            barn_id: Target barn identifier (e.g. "Kaba-barn-01").
+            cutoff: Optional ISO timestamp to limit events.
+        """
         flow = _load_flow(self.flow_log)
         state_events = _compute_barn_state_changes(flow, barn_id, cutoff)
         if not state_events:
@@ -142,51 +181,45 @@ class BarnFlowBuilder:
             raise ValueError(f"Barn {barn_id} did not receive any shipments in the selected range")
 
         shipments: List[ShipmentFlow] = []
-        conn = sqlite3.connect(self.db_path) if sqlite3 else None
-        try:
-            if conn:
-                conn.row_factory = sqlite3.Row
-            for shipment_id in shipments_of_interest:
-                shipment_rows = flow.filter(pl.col("shipment_id") == shipment_id)
-                carts = _extract_cart_flows(shipment_rows)
-                if not carts:
-                    continue
-                total_chicks = sum(cart.chicks for cart in carts.values())
-                barn_qty = arrivals[shipment_id]
-                barn_share = (barn_qty / total_chicks) if total_chicks else 0.0
-                contributions = [
-                    CartContribution(
-                        cart_id=cart.cart_id,
-                        setter_id=cart.setter_id,
-                        hatcher_id=cart.hatcher_id,
-                        eggs=cart.eggs,
-                        chicks=cart.chicks,
-                        losses=cart.losses,
-                        barn_chicks=cart.chicks * barn_share,
-                        barn_eggs=cart.eggs * barn_share,
-                    )
-                    for cart in carts.values()
-                    if cart.chicks > 0
-                ]
-                parent_pair = _locate_parent_pair(conn, shipment_id)
-                timeline = _summarise_shipment_timeline(
-                    shipment_rows,
-                    barn_arrival=first_arrival.get(shipment_id),
+        parent_map = _extract_parent_map(flow)
+        for shipment_id in shipments_of_interest:
+            shipment_rows = flow.filter(pl.col("shipment_id") == shipment_id)
+            carts = _extract_cart_flows(shipment_rows)
+            if not carts:
+                continue
+            total_chicks = sum(cart.chicks for cart in carts.values())
+            barn_qty = arrivals[shipment_id]
+            barn_share = (barn_qty / total_chicks) if total_chicks else 0.0
+            contributions = [
+                CartContribution(
+                    cart_id=cart.cart_id,
+                    setter_id=cart.setter_id,
+                    hatcher_id=cart.hatcher_id,
+                    eggs=cart.eggs,
+                    chicks=cart.chicks,
+                    losses=cart.losses,
+                    barn_chicks=cart.chicks * barn_share,
+                    barn_eggs=cart.eggs * barn_share,
                 )
-                shipments.append(
-                    ShipmentFlow(
-                        shipment_id=shipment_id,
-                        parent_pair=parent_pair,
-                        barn_quantity=barn_qty,
-                        total_chicks=total_chicks,
-                        cart_contributions=contributions,
-                        timeline=timeline,
-                        trucks=sorted(trucks_by_shipment.get(shipment_id, set())),
-                    )
+                for cart in carts.values()
+                if cart.chicks > 0
+            ]
+            parent_pair = parent_map.get(shipment_id, "ismeretlen")
+            timeline = _summarise_shipment_timeline(
+                shipment_rows,
+                barn_arrival=first_arrival.get(shipment_id),
+            )
+            shipments.append(
+                ShipmentFlow(
+                    shipment_id=shipment_id,
+                    parent_pair=parent_pair,
+                    barn_quantity=barn_qty,
+                    total_chicks=total_chicks,
+                    cart_contributions=contributions,
+                    timeline=timeline,
+                    trucks=sorted(trucks_by_shipment.get(shipment_id, set())),
                 )
-        finally:
-            if conn:
-                conn.close()
+            )
 
         cutoff_dt = cutoff or state_events[-1].timestamp
         current_state = state_events[-1].state_after if state_events else {}
@@ -203,6 +236,7 @@ class BarnFlowBuilder:
 
 
 def _load_flow(path: Path) -> pl.DataFrame:
+    """Load the Parquet flow log and derive a `event_dt` datetime column."""
     if not path.exists():
         raise FileNotFoundError(f"flow log not found: {path}")
     frame = pl.read_parquet(path)
@@ -212,6 +246,7 @@ def _load_flow(path: Path) -> pl.DataFrame:
 
 
 def _decode_json(value: Optional[str]) -> Dict[str, object]:
+    """Lenient JSON decode helper (returns empty dict on failure)."""
     if not value:
         return {}
     try:
@@ -222,6 +257,7 @@ def _decode_json(value: Optional[str]) -> Dict[str, object]:
 
 @dataclass
 class _CartFlow:
+    """Internal, minimal cart record used during extraction."""
     cart_id: str
     setter_id: Optional[str]
     hatcher_id: Optional[str]
@@ -231,6 +267,7 @@ class _CartFlow:
 
 
 def _extract_cart_flows(shipment_rows: pl.DataFrame) -> Dict[str, _CartFlow]:
+    """Extract cart‑level setter/hatcher info and hatch outcomes for a shipment."""
     carts: Dict[str, _CartFlow] = {}
 
     for row in shipment_rows.filter(pl.col("resource_type") == "setter_slot").iter_rows(named=True):
@@ -290,23 +327,19 @@ def _extract_cart_flows(shipment_rows: pl.DataFrame) -> Dict[str, _CartFlow]:
     return carts
 
 
-def _locate_parent_pair(conn, shipment_id: str) -> str:
-    if conn is None:
-        return "ismeretlen"
-    row = conn.execute(
-        """
-        SELECT metadata
-        FROM events
-        WHERE stage = 'inventory' AND status = 'arrived' AND entity_id = ?
-        LIMIT 1
-        """,
-        (shipment_id,),
-    ).fetchone()
-    if not row:
-        return "ismeretlen"
-    metadata = _decode_json(row[0])
-    parent = metadata.get("parent_pair", "ismeretlen")
-    return str(parent)
+def _extract_parent_map(flow: pl.DataFrame) -> Dict[str, str]:
+    """Build `shipment_id -> parent_pair` map from flow metadata (Parquet only)."""
+    pairs: Dict[str, str] = {}
+    subset = flow.filter(pl.col("resource_type") == "inventory").select([
+        pl.col("shipment_id"),
+        pl.col("metadata"),
+    ])
+    for row in subset.iter_rows(named=True):
+        meta = _decode_json(row["metadata"]) if row["metadata"] else {}
+        pp = meta.get("parent_pair")
+        if pp:
+            pairs[str(row["shipment_id"])] = str(pp)
+    return pairs
 
 
 def _summarise_shipment_timeline(

@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Render an SVG flow diagram for the batches that reached a given barn."""
+"""Static SVG graph for barn‑centric flows.
+
+The generator consumes a `BarnFlow` snapshot produced by
+`analysis.barn_flow.BarnFlowBuilder` and renders an SVG with five columns:
+
+    Parent → Setter → Hatcher → Truck → Barn
+
+Edge width is proportional to quantity (eggs/chicks attributed to the target
+barn). Highlighting is disabled by default for clarity.
+"""
 
 from __future__ import annotations
 
@@ -14,9 +23,12 @@ from analysis.barn_flow import BarnFlow, BarnFlowBuilder, BarnStateChange, Shipm
 
 SVG_WIDTH = 1600
 SVG_HEIGHT = 1000
-TOP_SETTERS = 8
-TOP_HATCHERS = 8
-TOP_TRUCKS = 6
+
+# Show more individual sources/machines to reduce aggregation and better depict flows
+TOP_PARENTS = 12
+TOP_SETTERS = 16
+TOP_HATCHERS = 16
+TOP_TRUCKS = 12
 
 
 @dataclass
@@ -28,6 +40,7 @@ class AggregatedNode:
 
 
 def main() -> None:
+    """CLI entry point to render a single barn graph to SVG."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("barn", help="Barn identifier, e.g. 'Kisvarsany-barn-01'")
     parser.add_argument("--flow-log", default="flow_log.parquet", help="Path to flow_log.parquet")
@@ -49,6 +62,7 @@ def main() -> None:
 
 
 def render_svg(barn_flow: BarnFlow, title: Optional[str] = None) -> str:
+    """Render the provided `BarnFlow` object into an SVG string."""
     context = build_context(barn_flow)
     svg_lines: List[str] = []
     add = svg_lines.append
@@ -74,21 +88,7 @@ def render_svg(barn_flow: BarnFlow, title: Optional[str] = None) -> str:
             f'stroke-width="{width:.2f}" opacity="{opacity:.2f}" marker-end="url(#arrow)"/>'
         )
 
-    if context['highlight']:
-        highlight = context['highlight']
-        for i in range(len(highlight) - 1):
-            a = highlight[i]
-            b = highlight[i + 1]
-            path_d = _bezier(a, b)
-            add(
-                '<path d="{d}" fill="none" stroke="#00e0ff" stroke-width="5" opacity="0.95" '
-                'filter="url(#softGlow)" marker-end="url(#arrowBright)"/>'.format(d=path_d)
-            )
-        hx, hy = highlight[-2]
-        add(
-            '<circle cx="{x:.1f}" cy="{y:.1f}" r="34" fill="none" stroke="#00e0ff" stroke-width="2" '
-            'opacity="0.6" filter="url(#softGlow)"/>'.format(x=hx, y=hy)
-        )
+    # No highlight path rendering (disabled by request)
 
     for key in _ordered_node_keys(context['nodes']):
         add(_render_node(context['nodes'][key]))
@@ -101,7 +101,23 @@ def render_svg(barn_flow: BarnFlow, title: Optional[str] = None) -> str:
 
 
 def build_context(barn_flow: BarnFlow) -> Dict[str, object]:
+    """Build a draw‑ready context (nodes, edges, groups, timeline).
+
+    This separates data massaging from the SVG text rendering, and is also used
+    by other frontends (e.g. interactive HTML) if needed.
+    """
     cart_entries = _collect_cart_entries(barn_flow)
+    # If parent pairs are unknown (sqlite issue), try to enrich from sqlite3 CLI
+    if cart_entries and all(e.get('parent') in (None, 'ismeretlen') for e in cart_entries):
+        _enrich_parents_from_sqlite_cli(cart_entries, [s.shipment_id for s in barn_flow.shipments])
+    # Parent (source) nodes from shipment parent pairs
+    parent_nodes, parent_map = _aggregate_stage(
+        _sum_by(cart_entries, 'parent', 'barn_eggs'),
+        labeler=_format_parent,
+        top_n=TOP_PARENTS,
+        other_key='parent-other',
+        other_label='Egyéb tojásfarmok',
+    )
     setter_nodes, setter_map = _aggregate_stage(
         _sum_by(cart_entries, 'setter_machine', 'barn_eggs'),
         labeler=_format_setter,
@@ -126,16 +142,12 @@ def build_context(barn_flow: BarnFlow) -> Dict[str, object]:
         other_label='Egyéb kamionok',
     )
 
-    nodes = _layout_nodes(setter_nodes, hatcher_nodes, truck_nodes)
-
-    total_eggs = sum(float(entry['barn_eggs']) for entry in cart_entries)
-    nodes['eggs']['weight'] = total_eggs
-    nodes['eggs']['label'] = 'Tojás'
+    nodes = _layout_nodes(parent_nodes, setter_nodes, hatcher_nodes, truck_nodes)
     nodes['barn']['weight'] = barn_flow.current_occupancy
     nodes['barn']['label'] = barn_flow.barn_id
 
     edges = []
-    edges.extend(_build_source_edges(cart_entries, setter_map))
+    edges.extend(_build_parent_setter_edges(cart_entries, parent_map, setter_map))
     edges.extend(_build_stage_edges(cart_entries, setter_map, hatcher_map))
     edges.extend(
         _build_hatcher_truck_edges(
@@ -148,7 +160,8 @@ def build_context(barn_flow: BarnFlow) -> Dict[str, object]:
     )
     edges.extend(_build_truck_barn_edges(truck_totals, truck_map))
 
-    highlight = _compute_highlight_path(barn_flow, nodes, setter_map, hatcher_map, truck_map, truck_shipment_totals)
+    # Highlight disabled in output; keep empty
+    highlight: Dict[str, object] = {}
     groups = _build_groups(nodes)
     timeline = _render_timeline(barn_flow.state_events, nodes['barn'])
 
@@ -163,6 +176,7 @@ def build_context(barn_flow: BarnFlow) -> Dict[str, object]:
 
 
 def _collect_cart_entries(barn_flow: BarnFlow) -> List[Dict[str, object]]:
+    """Flatten cart contributions into a simple list of dicts for grouping."""
     entries: List[Dict[str, object]] = []
     for shipment in barn_flow.shipments:
         for cart in shipment.cart_contributions:
@@ -171,6 +185,7 @@ def _collect_cart_entries(barn_flow: BarnFlow) -> List[Dict[str, object]]:
             entries.append(
                 {
                     'shipment_id': shipment.shipment_id,
+                    'parent': shipment.parent_pair,
                     'setter_machine': setter,
                     'hatcher_machine': hatcher,
                     'barn_eggs': cart.barn_eggs,
@@ -181,6 +196,7 @@ def _collect_cart_entries(barn_flow: BarnFlow) -> List[Dict[str, object]]:
 
 
 def _collect_truck_deliveries(events: List[BarnStateChange]) -> Tuple[Dict[str, float], Dict[Tuple[str, str], float]]:
+    """Aggregate truck totals and per‑shipment truck quantities from state events."""
     totals: Dict[str, float] = defaultdict(float)
     by_shipment: Dict[Tuple[str, str], float] = defaultdict(float)
     for event in events:
@@ -193,21 +209,23 @@ def _collect_truck_deliveries(events: List[BarnStateChange]) -> Tuple[Dict[str, 
     return totals, by_shipment
 
 
-def _build_source_edges(cart_entries: List[Dict[str, object]], setter_map: Dict[str, str]) -> List[Dict[str, object]]:
-    accum: Dict[str, float] = defaultdict(float)
+def _build_parent_setter_edges(cart_entries: List[Dict[str, object]], parent_map: Dict[str, str], setter_map: Dict[str, str]) -> List[Dict[str, object]]:
+    """Edges from parent pairs to setter machines weighted by eggs/chicks to barn."""
+    accum: Dict[Tuple[str, str], float] = defaultdict(float)
     for entry in cart_entries:
-        setter_key = setter_map[entry['setter_machine']]
+        parent_key = parent_map.get(entry['parent'], 'parent-other')
+        setter_key = setter_map.get(entry['setter_machine'], 'setter-other')
         weight = float(entry['barn_eggs']) or float(entry['barn_chicks'])
-        accum[setter_key] += weight
+        accum[(parent_key, setter_key)] += weight
     return [
         {
-            'a': _node_anchor('eggs', 'right'),
-            'b': _node_anchor(setter_key, 'left'),
+            'a': _node_anchor(src, 'right'),
+            'b': _node_anchor(dst, 'left'),
             'weight': weight,
             'color': '#3b4556',
             'stage': 'setter',
         }
-        for setter_key, weight in accum.items()
+        for (src, dst), weight in accum.items()
         if weight > 0
     ]
 
@@ -217,6 +235,7 @@ def _build_stage_edges(
     setter_map: Dict[str, str],
     hatcher_map: Dict[str, str],
 ) -> List[Dict[str, object]]:
+    """Edges from setter → hatcher weighted by chicks to the barn."""
     accum: Dict[Tuple[str, str], float] = defaultdict(float)
     for entry in cart_entries:
         setter_key = setter_map[entry['setter_machine']]
@@ -242,6 +261,7 @@ def _build_hatcher_truck_edges(
     truck_map: Dict[str, str],
     truck_shipment_totals: Dict[Tuple[str, str], float],
 ) -> List[Dict[str, object]]:
+    """Edges from hatcher → truck weighted by per‑shipment truck split."""
     cart_lookup: Dict[Tuple[str, str], float] = defaultdict(float)
     for entry in cart_entries:
         key = (entry['shipment_id'], entry['hatcher_machine'])
@@ -275,6 +295,7 @@ def _build_hatcher_truck_edges(
 
 
 def _build_truck_barn_edges(truck_totals: Dict[str, float], truck_map: Dict[str, str]) -> List[Dict[str, object]]:
+    """Edges from truck → barn weighted by placed quantity."""
     return [
         {
             'a': _node_anchor(truck_map[truck_id], 'right'),
@@ -289,8 +310,10 @@ def _build_truck_barn_edges(truck_totals: Dict[str, float], truck_map: Dict[str,
 
 
 def _node_anchor(node_key: str, side: str) -> Tuple[float, float]:
+    """Return an anchor point (x,y) slightly left/right of a node center."""
     node = NODE_REGISTRY[node_key]
-    dx = 60.0 if side == 'right' else -60.0
+    # Slightly smaller nodes → reduce anchor offset for nicer curves
+    dx = 48.0 if side == 'right' else -48.0
     return node['x'] + dx, node['y']
 
 
@@ -298,14 +321,16 @@ NODE_REGISTRY: Dict[str, Dict[str, float]] = {}
 
 
 def _layout_nodes(
+    parent_nodes: List[AggregatedNode],
     setter_nodes: List[AggregatedNode],
     hatcher_nodes: List[AggregatedNode],
     truck_nodes: List[AggregatedNode],
 ) -> Dict[str, Dict[str, float]]:
+    """Assign fixed X columns and vertically distribute nodes per column."""
     global NODE_REGISTRY
     NODE_REGISTRY = {}
     columns = {
-        'eggs': {'x': 120.0, 'nodes': [AggregatedNode('eggs', 'Tojás', 0.0, ['eggs'])]},
+        'parent': {'x': 120.0, 'nodes': parent_nodes},
         'setter': {'x': 360.0, 'nodes': setter_nodes},
         'hatcher': {'x': 680.0, 'nodes': hatcher_nodes},
         'truck': {'x': 1000.0, 'nodes': truck_nodes},
@@ -343,8 +368,10 @@ def _column_positions(count: int) -> List[float]:
 
 
 def _build_groups(nodes: Dict[str, Dict[str, float]]) -> List[str]:
+    """Compute dashed group rectangles (SVG snippets) for each column."""
     groups: List[str] = []
     group_specs = {
+        'parent': {'title': 'Tojásfarmok / szülőpárok', 'keys': [k for k, v in nodes.items() if v['column'] == 'parent']},
         'setter': {'title': 'Előkeltetők', 'keys': [k for k, v in nodes.items() if v['column'] == 'setter']},
         'hatcher': {'title': 'Utókeltetők', 'keys': [k for k, v in nodes.items() if v['column'] == 'hatcher']},
         'truck': {'title': 'Szállítás', 'keys': [k for k, v in nodes.items() if v['column'] == 'truck']},
@@ -439,7 +466,8 @@ def _render_group(group_svg: str) -> str:
 
 
 def _ordered_node_keys(nodes: Dict[str, Dict[str, float]]) -> List[str]:
-    order = ['eggs', 'setter', 'hatcher', 'truck', 'barn']
+    """Stable ordering of nodes by columns and original rank for labeling."""
+    order = ['parent', 'setter', 'hatcher', 'truck', 'barn']
     result: List[str] = []
     for column in order:
         column_nodes = [(key, data) for key, data in nodes.items() if data['column'] == column]
@@ -454,15 +482,20 @@ def _render_node(node: Dict[str, float]) -> str:
     y = node['y']
     label = node['label']
     value = _format_quantity(node.get('weight', 0.0))
+    # Draw smaller, square-styled nodes for improved readability
+    size_outer = 48  # outer square side
+    size_inner = 34  # inner square side
+    half_o = size_outer / 2
+    half_i = size_inner / 2
     lines = [
         f'<g class="node" transform="translate({x:.1f},{y:.1f})">',
-        '<circle cx="0" cy="0" r="40" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/>',
-        '<circle cx="0" cy="0" r="28" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/>',
-        f'<text class="label" x="0" y="56" text-anchor="middle" font-size="13">{label}</text>',
+        f'<rect x="{-half_o:.1f}" y="{-half_o:.1f}" width="{size_outer}" height="{size_outer}" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/>',
+        f'<rect x="{-half_i:.1f}" y="{-half_i:.1f}" width="{size_inner}" height="{size_inner}" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/>',
+        f'<text class="label" x="0" y="{half_o + 16:.1f}" text-anchor="middle" font-size="14" fill="#e6f0ff">{label}</text>',
     ]
     if value:
         lines.append(
-            f'<text class="label" x="0" y="72" text-anchor="middle" font-size="12" opacity="0.75">{value}</text>'
+            f'<text class="label" x="0" y="{half_o + 32:.1f}" text-anchor="middle" font-size="12" opacity="0.85">{value}</text>'
         )
     lines.append('</g>')
     return ''.join(lines)
@@ -567,6 +600,70 @@ def _format_truck(key: str) -> str:
     return f"Kamion {key.split('-')[-1]}"
 
 
+def _format_parent(key: str) -> str:
+    if key == 'parent-other':
+        return 'Egyéb tojásfarmok'
+    try:
+        suf = key.split('-')[-1]
+        num = int(suf)
+        return f'Szülőpár {num:02d}'
+    except Exception:
+        return f'Szülőpár {key}'
+
+
+def _enrich_parents_from_sqlite_cli(entries: List[Dict[str, object]], shipment_ids: List[str]) -> None:
+    """Best-effort enrichment of parent pair IDs via the sqlite3 CLI.
+
+    Some Python environments lack a working sqlite3 module. When all parents are
+    "ismeretlen", try querying the `events` table using the `sqlite3` binary.
+    This mutates `entries` in place, filling the `parent` key where found.
+    """
+    from shutil import which
+    import subprocess
+    from pathlib import Path
+
+    if not shipment_ids:
+        return
+    if which('sqlite3') is None:
+        return
+    db_path = Path('hatchery_events.sqlite')
+    if not db_path.exists():
+        return
+    quoted = ','.join("'" + sid + "'" for sid in shipment_ids)
+    query = (
+        "SELECT entity_id, json_extract(metadata, '$.parent_pair') AS parent_pair "
+        "FROM events WHERE stage='inventory' AND status='arrived' AND entity_id IN (" + quoted + ");"
+    )
+    try:
+        res = subprocess.run(
+            ['sqlite3', '-csv', str(db_path), query],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except Exception:
+        return
+    mapping: Dict[str, str] = {}
+    for line in res.stdout.strip().splitlines():
+        if not line:
+            continue
+        try:
+            sid, parent = line.split(',', 1)
+        except ValueError:
+            continue
+        mapping[sid] = parent or 'ismeretlen'
+    if not mapping:
+        return
+    # Update entries in place
+    # We need shipment_id per entry; ensure present
+    for e in entries:
+        sid = e.get('shipment_id')
+        if isinstance(sid, str) and e.get('parent') in (None, 'ismeretlen'):
+            parent = mapping.get(sid)
+            if parent:
+                e['parent'] = parent
+
+
 def _svg_defs() -> str:
     return """<defs>
             <radialGradient id="nodeGlow" cx="50%" cy="50%" r="60%">
@@ -601,8 +698,9 @@ def _bezier(a: Tuple[float, float], b: Tuple[float, float], bend: float = 0.35) 
 def _scale_weight(weight: float, max_weight: float) -> float:
     if max_weight <= 0:
         return 2.0
-    base = 1.6
-    span = 6.0
+    # Increase span to emphasize flow differences
+    base = 1.2
+    span = 8.0
     return base + (weight / max_weight) * span
 
 

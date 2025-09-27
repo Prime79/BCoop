@@ -1,3 +1,9 @@
+"""Full simulation run entry point.
+
+Writes a fresh SQLite events DB (optional) and a Parquet flow log consumed by
+the graphing tools. Use `quick_run.py` for a short test run.
+"""
+
 from pathlib import Path
 
 from simulation.config import SimulationConfig, derive_capacity
@@ -6,7 +12,7 @@ from simulation.model import ChickSimulation
 
 
 def main() -> None:
-    """Execute a single simulation run and print capacity plus throughput metrics."""
+    """Execute a simulation run and print capacity/throughput metrics."""
     cfg = SimulationConfig()
     plan = derive_capacity(cfg)
 
