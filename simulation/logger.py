@@ -8,11 +8,11 @@ from typing import Any, Dict, Optional
 
 
 class EventLogger:
-"""Persist simulation events to SQLite with lightweight batching.
+    """Persist simulation events to SQLite with lightweight batching.
 
-Graphs and analysis do not depend on SQLite. This logger is used for audit and
-debugging. If the `sqlite3` Python module is unavailable in the runtime, it
-falls back to appending JSON lines to `<db_path>.jsonl` so that runs are not
+    Graphs and analysis do not depend on SQLite. This logger is used for audit and
+    debugging. If the `sqlite3` Python module is unavailable in the runtime, it
+    falls back to appending JSON lines to `<db_path>.jsonl` so that runs are not
 blocked by environment limitations.
 """
 

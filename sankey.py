@@ -1,12 +1,16 @@
 #!/usr/bin/env python
-"""Generate a farm-centric Sankey diagram from the flow log."""
+"""Generate a farm-centric Sankey diagram from the flow log (Parquet-only).
+
+Parent-pair is read from the Parquet flow log metadata on `inventory` rows,
+so this tool no longer needs SQLite. Highcharts assets are still required for
+HTML export.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
@@ -15,7 +19,6 @@ from typing import Dict, Iterable, Tuple
 
 import polars as pl
 
-DEFAULT_DB = Path("hatchery_events.sqlite")
 DEFAULT_FLOW_LOG = Path("flow_log.parquet")
 HCHARTS_DIR = Path("Highcharts-12/code")
 
@@ -61,20 +64,18 @@ def load_flow(path: Path) -> pl.DataFrame:
     )
 
 
-def locate_parent_pair(conn: sqlite3.Connection, shipment_id: str) -> str:
-    row = conn.execute(
-        """
-        SELECT metadata
-        FROM events
-        WHERE stage = 'inventory' AND status = 'arrived' AND entity_id = ?
-        LIMIT 1
-        """,
-        (shipment_id,),
-    ).fetchone()
-    if not row:
-        return "ismeretlen"
-    meta = decode_json(row[0])
-    return str(meta.get("parent_pair", "ismeretlen"))
+def build_parent_map_from_parquet(flow: pl.DataFrame) -> Dict[str, str]:
+    pairs: Dict[str, str] = {}
+    subset = flow.filter(pl.col("resource_type") == "inventory").select([
+        pl.col("shipment_id"),
+        pl.col("metadata"),
+    ])
+    for row in subset.iter_rows(named=True):
+        meta = decode_json(row["metadata"]) if row["metadata"] else {}
+        pp = meta.get("parent_pair")
+        if pp:
+            pairs[str(row["shipment_id"])] = str(pp)
+    return pairs
 
 
 def barn_snapshot(
@@ -145,11 +146,11 @@ def extract_cart_flows(shipment_rows: pl.DataFrame) -> dict[str, CartFlow]:
 
 def build_sankey(
     flow: pl.DataFrame,
-    conn: sqlite3.Connection,
     farm: str,
     cutoff: datetime,
 ) -> SankeyPayload:
     barns, farm_shipments = barn_snapshot(flow, farm, cutoff)
+    parent_map = build_parent_map_from_parquet(flow)
 
     links: dict[Tuple[str, str], float] = defaultdict(float)
     nodes: dict[str, dict[str, object]] = {}
@@ -185,7 +186,7 @@ def build_sankey(
         total_chicks = sum(cart.chicks for cart in carts.values())
         if total_chicks <= 0:
             continue
-        parent_pair = locate_parent_pair(conn, shipment_id)
+        parent_pair = parent_map.get(shipment_id, "ismeretlen")
         parent_label = f"Szülőpár {parent_pair.split('-')[-1]}" if parent_pair != "ismeretlen" else "Szülőpár ?"
         parent_node = ensure_node("parent", parent_pair, parent_label)
 
@@ -323,7 +324,6 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--farm", required=True, help="Farm identifier, e.g. 'Kaba'")
     parser.add_argument("--timestamp", required=True, help="ISO timestamp (YYYY-MM-DD or with time)")
-    parser.add_argument("--db-path", default=str(DEFAULT_DB), help="Path to hatchery_events.sqlite")
     parser.add_argument("--flow-log", default=str(DEFAULT_FLOW_LOG), help="Path to flow_log.parquet")
     parser.add_argument("--out-json", help="Optional JSON output path")
     parser.add_argument("--out-html", help="Optional HTML output path")
@@ -335,13 +335,7 @@ def main() -> None:
     args = parse_args()
     cutoff = parse_timestamp(args.timestamp)
     flow = load_flow(Path(args.flow_log))
-
-    conn = sqlite3.connect(args.db_path)
-    try:
-        conn.row_factory = sqlite3.Row
-        payload = build_sankey(flow, conn, args.farm, cutoff)
-    finally:
-        conn.close()
+    payload = build_sankey(flow, args.farm, cutoff)
 
     if args.out_json:
         write_json(payload, Path(args.out_json))

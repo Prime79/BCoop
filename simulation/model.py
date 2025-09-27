@@ -81,8 +81,8 @@ class ChickSimulation:
         self.env = simpy.Environment()
         self.capacity_plan: CapacityPlan = derive_capacity(cfg)
 
-        self.pre_hatch_slots = simpy.Store(self.env, capacity=cfg.total_pre_hatch_slots)
-        self.hatch_slots = simpy.Store(self.env, capacity=cfg.total_hatch_slots)
+        self.pre_hatch_slots = simpy.FilterStore(self.env, capacity=cfg.total_pre_hatch_slots)
+        self.hatch_slots = simpy.FilterStore(self.env, capacity=cfg.total_hatch_slots)
         self._populate_machine_slots()
 
         self.truck_slots = simpy.Container(
@@ -95,6 +95,9 @@ class ChickSimulation:
 
         self.shipment_counter = itertools.count()
         self.parent_pairs = itertools.cycle(range(1, 16))
+        # Always-on cohesion: prefer keeping a shipment's carts on the same setter/hatcher machine
+        self._preferred_setter: Dict[str, str] = {}
+        self._preferred_hatcher: Dict[str, str] = {}
 
         self.slaughter_records: List[SlaughterRecord] = []
         self._timestamp_cache: Optional[str] = None
@@ -105,11 +108,11 @@ class ChickSimulation:
         for machine in range(1, self.cfg.pre_hatch_machines + 1):
             for slot in range(1, self.cfg.pre_hatch_carts_per_machine + 1):
                 slot_id = f"setter-{machine:02d}-cart-{slot:02d}"
-                self.pre_hatch_slots.items.append(slot_id)
+                self.pre_hatch_slots.put(slot_id)  # type: ignore[arg-type]
         for machine in range(1, self.cfg.hatch_machines + 1):
             for slot in range(1, self.cfg.hatch_carts_per_machine + 1):
                 slot_id = f"hatcher-{machine:02d}-cart-{slot:02d}"
-                self.hatch_slots.items.append(slot_id)
+                self.hatch_slots.put(slot_id)  # type: ignore[arg-type]
 
     def _initialise_barn_places(self, specs: List[FarmSpec]) -> List[BarnPlace]:
         """Expand farm capacity into evenly split barn places with capacities."""
@@ -306,7 +309,11 @@ class ChickSimulation:
         self, shipment_id: str, cart_id: str, eggs: int
     ) -> simpy.events.Event:
         """Run one cart through setter and hatcher, logging flow transitions."""
-        slot_id = yield self.pre_hatch_slots.get()
+        pref_setter = self._preferred_setter.get(shipment_id)
+        if pref_setter:
+            slot_id = yield self.pre_hatch_slots.get(lambda s: str(s).startswith(pref_setter))  # type: ignore[arg-type]
+        else:
+            slot_id = yield self.pre_hatch_slots.get()
         self.flow_writer.log(
             shipment_id,
             resource_id=slot_id,
@@ -318,6 +325,8 @@ class ChickSimulation:
         )
         yield self.env.timeout(self.cfg.pre_hatch_days)
         yield self.pre_hatch_slots.put(slot_id)
+        if shipment_id not in self._preferred_setter:
+            self._preferred_setter[shipment_id] = str(slot_id).split('-cart')[0]
         self.flow_writer.log(
             shipment_id,
             resource_id=slot_id,
@@ -332,7 +341,11 @@ class ChickSimulation:
         fertile = int(round(eggs * pass_rate))
         discarded = eggs - fertile
 
-        hatch_slot_id = yield self.hatch_slots.get()
+        pref_hatcher = self._preferred_hatcher.get(shipment_id)
+        if pref_hatcher:
+            hatch_slot_id = yield self.hatch_slots.get(lambda s: str(s).startswith(pref_hatcher))  # type: ignore[arg-type]
+        else:
+            hatch_slot_id = yield self.hatch_slots.get()
         self.flow_writer.log(
             shipment_id,
             resource_id=hatch_slot_id,
@@ -344,6 +357,8 @@ class ChickSimulation:
         )
         hatch_duration = self.rng.uniform(*self.cfg.hatch_days_range)
         yield self.env.timeout(hatch_duration)
+        if shipment_id not in self._preferred_hatcher:
+            self._preferred_hatcher[shipment_id] = str(hatch_slot_id).split('-cart')[0]
 
         hatch_rate = self.rng.betavariate(self.cfg.hatch_alpha, self.cfg.hatch_beta)
         chicks = int(round(fertile * hatch_rate))
@@ -376,28 +391,31 @@ class ChickSimulation:
         This avoids producing multiple incremental barn state changes per truck,
         which previously led to small +/- corrections in timeline diffs.
         """
-        # Build a placement plan: list of (place_id, amount)
+        # Build a cohesive placement plan: prefer empty places, then places already
+        # containing this shipment, then mix with others only if necessary.
         plan: list[tuple[str, int]] = []
         remaining = load
+        def recompute_order() -> list[str]:
+            empty = [p.place_id for p in self.barn_places if self.env.now >= p.cleaning_until and p.occupied == 0 and p.remaining_capacity > 0]
+            own = [p.place_id for p in self.barn_places if self.env.now >= p.cleaning_until and shipment_id in p.occupants and p.remaining_capacity > 0]
+            other = [p.place_id for p in self.barn_places if self.env.now >= p.cleaning_until and p.occupied > 0 and shipment_id not in p.occupants and p.remaining_capacity > 0]
+            return empty + own + other
+
+        ordered_ids = recompute_order()
+        idx = 0
         while remaining > 0:
-            place: Optional[BarnPlace] = None
-            wait_time: Optional[float] = None
-            while place is None:
-                with self.barn_lock.request() as req:
-                    yield req
-                    place = self._find_next_place()
-                    if place is None:
-                        next_clean = min(
-                            (p.cleaning_until for p in self.barn_places if p.cleaning_until > self.env.now),
-                            default=None,
-                        )
-                        wait_time = (next_clean - self.env.now) if next_clean is not None else 1.0
-                if place is None:
-                    yield self.env.timeout(max(0.1, wait_time or 1.0))
-            # After we have a candidate, check capacity just-in-time
+            if idx >= len(ordered_ids):
+                # wait for capacity to free up or cleaning to complete
+                yield self.env.timeout(0.5)
+                ordered_ids = recompute_order()
+                idx = 0
+                if not ordered_ids:
+                    continue
+            candidate_id = ordered_ids[idx]
+            idx += 1
             with self.barn_lock.request() as req:
                 yield req
-                confirmed = self._find_specific_place(place.place_id)
+                confirmed = self._find_specific_place(candidate_id)
                 if confirmed is None or confirmed.remaining_capacity <= 0:
                     continue
                 portion = min(confirmed.remaining_capacity, remaining)
