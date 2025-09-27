@@ -98,6 +98,9 @@ class ChickSimulation:
         # Always-on cohesion: prefer keeping a shipment's carts on the same setter/hatcher machine
         self._preferred_setter: Dict[str, str] = {}
         self._preferred_hatcher: Dict[str, str] = {}
+        # Coordination events to avoid race where multiple carts request slots before preference is set
+        self._setter_pref_event: Dict[str, simpy.events.Event] = {}
+        self._hatcher_pref_event: Dict[str, simpy.events.Event] = {}
 
         self.slaughter_records: List[SlaughterRecord] = []
         self._timestamp_cache: Optional[str] = None
@@ -309,11 +312,19 @@ class ChickSimulation:
         self, shipment_id: str, cart_id: str, eggs: int
     ) -> simpy.events.Event:
         """Run one cart through setter and hatcher, logging flow transitions."""
+        # Enforce setter cohesion: first cart chooses machine, others wait for that choice
+        if shipment_id not in self._setter_pref_event:
+            self._setter_pref_event[shipment_id] = self.env.event()
         pref_setter = self._preferred_setter.get(shipment_id)
         if pref_setter:
             slot_id = yield self.pre_hatch_slots.get(lambda s: str(s).startswith(pref_setter))  # type: ignore[arg-type]
         else:
+            # Become the chooser: take any slot, then announce the machine prefix
             slot_id = yield self.pre_hatch_slots.get()
+            if shipment_id not in self._preferred_setter:
+                self._preferred_setter[shipment_id] = str(slot_id).split('-cart')[0]
+                if not self._setter_pref_event[shipment_id].triggered:
+                    self._setter_pref_event[shipment_id].succeed()
         self.flow_writer.log(
             shipment_id,
             resource_id=slot_id,
@@ -325,8 +336,6 @@ class ChickSimulation:
         )
         yield self.env.timeout(self.cfg.pre_hatch_days)
         yield self.pre_hatch_slots.put(slot_id)
-        if shipment_id not in self._preferred_setter:
-            self._preferred_setter[shipment_id] = str(slot_id).split('-cart')[0]
         self.flow_writer.log(
             shipment_id,
             resource_id=slot_id,
@@ -341,11 +350,19 @@ class ChickSimulation:
         fertile = int(round(eggs * pass_rate))
         discarded = eggs - fertile
 
+        # Enforce hatcher cohesion: wait for chosen machine if not yet decided
+        if shipment_id not in self._hatcher_pref_event:
+            self._hatcher_pref_event[shipment_id] = self.env.event()
         pref_hatcher = self._preferred_hatcher.get(shipment_id)
         if pref_hatcher:
             hatch_slot_id = yield self.hatch_slots.get(lambda s: str(s).startswith(pref_hatcher))  # type: ignore[arg-type]
         else:
+            # Become the chooser for hatcher: take any slot and fix the machine prefix for the shipment
             hatch_slot_id = yield self.hatch_slots.get()
+            if shipment_id not in self._preferred_hatcher:
+                self._preferred_hatcher[shipment_id] = str(hatch_slot_id).split('-cart')[0]
+                if not self._hatcher_pref_event[shipment_id].triggered:
+                    self._hatcher_pref_event[shipment_id].succeed()
         self.flow_writer.log(
             shipment_id,
             resource_id=hatch_slot_id,
@@ -357,8 +374,6 @@ class ChickSimulation:
         )
         hatch_duration = self.rng.uniform(*self.cfg.hatch_days_range)
         yield self.env.timeout(hatch_duration)
-        if shipment_id not in self._preferred_hatcher:
-            self._preferred_hatcher[shipment_id] = str(hatch_slot_id).split('-cart')[0]
 
         hatch_rate = self.rng.betavariate(self.cfg.hatch_alpha, self.cfg.hatch_beta)
         chicks = int(round(fertile * hatch_rate))

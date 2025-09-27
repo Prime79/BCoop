@@ -85,7 +85,7 @@ def render_svg(barn_flow: BarnFlow, title: Optional[str] = None) -> str:
         opacity = 0.75 if edge['stage'] != 'truck' else 0.85
         add(
             f'<path d="{path_d}" fill="none" stroke="{edge["color"]}" '
-            f'stroke-width="{width:.2f}" opacity="{opacity:.2f}" marker-end="url(#arrow)"/>'
+            f'stroke-width="{width:.2f}" stroke-linecap="round" opacity="{opacity:.2f}" marker-end="url(#arrow)"/>'
         )
 
     # No highlight path rendering (disabled by request)
@@ -313,7 +313,7 @@ def _node_anchor(node_key: str, side: str) -> Tuple[float, float]:
     """Return an anchor point (x,y) slightly left/right of a node center."""
     node = NODE_REGISTRY[node_key]
     # Slightly smaller nodes → reduce anchor offset for nicer curves
-    dx = 48.0 if side == 'right' else -48.0
+    dx = 44.0 if side == 'right' else -44.0
     return node['x'] + dx, node['y']
 
 
@@ -674,11 +674,11 @@ def _svg_defs() -> str:
                 <feGaussianBlur stdDeviation="6" result="blur"/>
                 <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
-            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L6,3 L0,6 Z" fill="#9aa4b2" />
+            <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="8" refX="12" refY="4" orient="auto">
+                <path d="M0,0 L12,4 L0,8 Z" fill="#9aa4b2" />
             </marker>
-            <marker id="arrowBright" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto">
-                <path d="M0,0 L9,5 L0,10 Z" fill="#00e0ff" />
+            <marker id="arrowBright" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="10" refX="14" refY="5" orient="auto">
+                <path d="M0,0 L14,5 L0,10 Z" fill="#00e0ff" />
             </marker>
             <style>
                 .label { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto; fill:#c8cfdb; }
