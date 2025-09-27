@@ -2,9 +2,9 @@
 """Static SVG graph for barn‑centric flows.
 
 The generator consumes a `BarnFlow` snapshot produced by
-`analysis.barn_flow.BarnFlowBuilder` and renders an SVG with five columns:
+`analysis.barn_flow.BarnFlowBuilder` and renders an SVG with columns:
 
-    Parent → Setter → Hatcher → Truck → Barn
+    Parent → Setter → Transzfer → Hatcher → Truck → Barn
 
 Edge width is proportional to quantity (eggs/chicks attributed to the target
 barn). Highlighting is disabled by default for clarity.
@@ -21,8 +21,8 @@ from typing import Dict, List, Optional, Tuple
 
 from analysis.barn_flow import BarnFlow, BarnFlowBuilder, BarnStateChange, ShipmentFlow
 
-SVG_WIDTH = 1600
-SVG_HEIGHT = 1000
+SVG_WIDTH = 1700
+SVG_HEIGHT = 1100
 
 # Show more individual sources/machines to reduce aggregation and better depict flows
 TOP_PARENTS = 12
@@ -125,6 +125,18 @@ def build_context(barn_flow: BarnFlow) -> Dict[str, object]:
         other_key='setter-other',
         other_label='Egyéb előkeltetők',
     )
+    # Transzfer (batch-ek): separate node keys to avoid clobbering parent nodes
+    _transfer_totals_raw = _sum_by(cart_entries, 'parent', 'barn_chicks')
+    transfer_totals: Dict[str, float] = {f"batch:{k}": v for k, v in _transfer_totals_raw.items()}
+    transfer_nodes, transfer_map_tmp = _aggregate_stage(
+        transfer_totals,
+        labeler=_format_transfer,
+        top_n=0,
+        other_key='batch:other',
+        other_label='Egyéb batch-ek',
+    )
+    # Map original parent key -> batch key used in the transfer column
+    transfer_map: Dict[str, str] = {k: (transfer_map_tmp.get(f"batch:{k}") or f"batch:{k}") for k in _transfer_totals_raw.keys()}
     hatcher_nodes, hatcher_map = _aggregate_stage(
         _sum_by(cart_entries, 'hatcher_machine', 'barn_chicks'),
         labeler=_format_hatcher,
@@ -142,13 +154,14 @@ def build_context(barn_flow: BarnFlow) -> Dict[str, object]:
         other_label='Egyéb kamionok',
     )
 
-    nodes = _layout_nodes(parent_nodes, setter_nodes, hatcher_nodes, truck_nodes)
+    nodes = _layout_nodes(parent_nodes, setter_nodes, transfer_nodes, hatcher_nodes, truck_nodes)
     nodes['barn']['weight'] = barn_flow.current_occupancy
     nodes['barn']['label'] = barn_flow.barn_id
 
     edges = []
     edges.extend(_build_parent_setter_edges(cart_entries, parent_map, setter_map))
-    edges.extend(_build_stage_edges(cart_entries, setter_map, hatcher_map))
+    edges.extend(_build_setter_transfer_edges(cart_entries, setter_map, transfer_map))
+    edges.extend(_build_transfer_hatcher_edges(cart_entries, transfer_map, hatcher_map))
     edges.extend(
         _build_hatcher_truck_edges(
             barn_flow.shipments,
@@ -230,17 +243,40 @@ def _build_parent_setter_edges(cart_entries: List[Dict[str, object]], parent_map
     ]
 
 
-def _build_stage_edges(
+def _build_setter_transfer_edges(
     cart_entries: List[Dict[str, object]],
     setter_map: Dict[str, str],
-    hatcher_map: Dict[str, str],
+    transfer_map: Dict[str, str],
 ) -> List[Dict[str, object]]:
-    """Edges from setter → hatcher weighted by chicks to the barn."""
+    """Edges from setter → transfer (parent) weighted by chicks to the barn."""
     accum: Dict[Tuple[str, str], float] = defaultdict(float)
     for entry in cart_entries:
         setter_key = setter_map[entry['setter_machine']]
+        transfer_key = transfer_map.get(entry['parent'], 'batch:other')
+        accum[(setter_key, transfer_key)] += float(entry['barn_chicks'])
+    return [
+        {
+            'a': _node_anchor(src, 'right'),
+            'b': _node_anchor(dst, 'left'),
+            'weight': weight,
+            'color': '#465065',
+            'stage': 'transfer',
+        }
+        for (src, dst), weight in accum.items() if weight > 0
+    ]
+
+
+def _build_transfer_hatcher_edges(
+    cart_entries: List[Dict[str, object]],
+    transfer_map: Dict[str, str],
+    hatcher_map: Dict[str, str],
+) -> List[Dict[str, object]]:
+    """Edges from transfer (parent) → hatcher weighted by chicks to the barn."""
+    accum: Dict[Tuple[str, str], float] = defaultdict(float)
+    for entry in cart_entries:
+        transfer_key = transfer_map.get(entry['parent'], 'batch:other')
         hatcher_key = hatcher_map[entry['hatcher_machine']]
-        accum[(setter_key, hatcher_key)] += float(entry['barn_chicks'])
+        accum[(transfer_key, hatcher_key)] += float(entry['barn_chicks'])
     return [
         {
             'a': _node_anchor(src, 'right'),
@@ -249,8 +285,7 @@ def _build_stage_edges(
             'color': '#4b566a',
             'stage': 'hatch',
         }
-        for (src, dst), weight in accum.items()
-        if weight > 0
+        for (src, dst), weight in accum.items() if weight > 0
     ]
 
 
@@ -323,18 +358,28 @@ NODE_REGISTRY: Dict[str, Dict[str, float]] = {}
 def _layout_nodes(
     parent_nodes: List[AggregatedNode],
     setter_nodes: List[AggregatedNode],
+    transfer_nodes: List[AggregatedNode],
     hatcher_nodes: List[AggregatedNode],
     truck_nodes: List[AggregatedNode],
 ) -> Dict[str, Dict[str, float]]:
     """Assign fixed X columns and vertically distribute nodes per column."""
     global NODE_REGISTRY
     NODE_REGISTRY = {}
+    # Evenly space columns across the canvas with comfortable margins so the
+    # visual rhythm is consistent regardless of label widths.
+    order = ['parent', 'setter', 'transfer', 'hatcher', 'truck', 'barn']
+    left_margin = 140.0
+    right_margin = float(SVG_WIDTH - 180)
+    span = max(1.0, right_margin - left_margin)
+    step = span / (len(order) - 1)
+    x_positions = {col: left_margin + i * step for i, col in enumerate(order)}
     columns = {
-        'parent': {'x': 120.0, 'nodes': parent_nodes},
-        'setter': {'x': 360.0, 'nodes': setter_nodes},
-        'hatcher': {'x': 680.0, 'nodes': hatcher_nodes},
-        'truck': {'x': 1000.0, 'nodes': truck_nodes},
-        'barn': {'x': 1280.0, 'nodes': [AggregatedNode('barn', 'Istálló', 0.0, ['barn'])]},
+        'parent':   {'x': x_positions['parent'],   'nodes': parent_nodes},
+        'setter':   {'x': x_positions['setter'],   'nodes': setter_nodes},
+        'transfer': {'x': x_positions['transfer'], 'nodes': transfer_nodes},
+        'hatcher':  {'x': x_positions['hatcher'],  'nodes': hatcher_nodes},
+        'truck':    {'x': x_positions['truck'],    'nodes': truck_nodes},
+        'barn':     {'x': x_positions['barn'],     'nodes': [AggregatedNode('barn', 'Istálló', 0.0, ['barn'])]},
     }
     layout: Dict[str, Dict[str, float]] = {}
     for column_id, spec in columns.items():
@@ -373,9 +418,10 @@ def _build_groups(nodes: Dict[str, Dict[str, float]]) -> List[str]:
     group_specs = {
         'parent': {'title': 'Tojásfarmok / szülőpárok', 'keys': [k for k, v in nodes.items() if v['column'] == 'parent']},
         'setter': {'title': 'Előkeltetők', 'keys': [k for k, v in nodes.items() if v['column'] == 'setter']},
+        'transfer': {'title': 'Transzfer (batch-ek)', 'keys': [k for k, v in nodes.items() if v['column'] == 'transfer']},
         'hatcher': {'title': 'Utókeltetők', 'keys': [k for k, v in nodes.items() if v['column'] == 'hatcher']},
         'truck': {'title': 'Szállítás', 'keys': [k for k, v in nodes.items() if v['column'] == 'truck']},
-        'barn': {'title': 'Cél istálló', 'keys': ['barn']},
+        'barn': {'title': 'Cél ól', 'keys': ['barn']},
     }
     for group_id, spec in group_specs.items():
         if not spec['keys']:
@@ -467,7 +513,7 @@ def _render_group(group_svg: str) -> str:
 
 def _ordered_node_keys(nodes: Dict[str, Dict[str, float]]) -> List[str]:
     """Stable ordering of nodes by columns and original rank for labeling."""
-    order = ['parent', 'setter', 'hatcher', 'truck', 'barn']
+    order = ['parent', 'setter', 'transfer', 'hatcher', 'truck', 'barn']
     result: List[str] = []
     for column in order:
         column_nodes = [(key, data) for key, data in nodes.items() if data['column'] == column]
@@ -540,7 +586,7 @@ def _render_timeline(events: List[BarnStateChange], barn_node: Dict[str, float])
     y = barn_node['y'] - 120
     svg_lines = [
         f'<g transform="translate({x:.1f},{y:.1f})">',
-        '<text class="label" x="0" y="0" font-size="15" opacity="0.85">Istálló állapotváltozásai</text>',
+        '<text class="label" x="0" y="0" font-size="15" opacity="0.85">Ól állapotváltozásai</text>',
     ]
     for idx, line in enumerate(lines):
         svg_lines.append(
@@ -609,6 +655,17 @@ def _format_parent(key: str) -> str:
         return f'Szülőpár {num:02d}'
     except Exception:
         return f'Szülőpár {key}'
+
+
+def _format_transfer(key: str) -> str:
+    # Accept keys like 'batch:parent-pair-05'
+    try:
+        raw = key.split(':', 1)[-1]
+        suf = raw.split('-')[-1]
+        num = int(suf)
+        return f'Batch P{num:02d}'
+    except Exception:
+        return f'Batch {key}'
 
 
 def _enrich_parents_from_sqlite_cli(entries: List[Dict[str, object]], shipment_ids: List[str]) -> None:

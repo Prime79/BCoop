@@ -43,7 +43,29 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
     nodes = ctx["nodes"]  # type: ignore
     hatcher_nodes = {k: v for k, v in nodes.items() if v.get("column") == "hatcher"}  # type: ignore
     setter_nodes = {k: v for k, v in nodes.items() if v.get("column") == "setter"}  # type: ignore
+    transfer_nodes = {k: v for k, v in nodes.items() if v.get("column") == "transfer"}  # type: ignore
     breakdown = compute_hatcher_breakdown(bf)
+
+    # Transfer (parent-pair) stats per barn
+    transfer_stats: Dict[str, Dict[str, object]] = {}
+    for shipment in bf.shipments:
+        parent = shipment.parent_pair
+        st = transfer_stats.setdefault(parent, {
+            'shipments': 0,
+            'eggs_to_barn': 0.0,
+            'chicks_to_barn': 0.0,
+            'first_inventory': None,
+        })
+        st['shipments'] = int(st['shipments']) + 1
+        st['chicks_to_barn'] = float(st['chicks_to_barn']) + float(shipment.barn_quantity or 0.0)
+        st['eggs_to_barn'] = float(st['eggs_to_barn']) + float(sum(c.barn_eggs for c in shipment.cart_contributions))
+        inv = shipment.timeline.inventory_ready or shipment.timeline.barn_arrival
+        if inv is not None and (st['first_inventory'] is None or inv < st['first_inventory']):
+            st['first_inventory'] = inv
+    total_chicks = sum(v['chicks_to_barn'] for v in transfer_stats.values()) or 1.0
+    for v in transfer_stats.values():
+        v['share_pct'] = round(100.0 * float(v['chicks_to_barn']) / float(total_chicks), 1)
+        v['age_days'] = (bf.cutoff - v['first_inventory']).days if v['first_inventory'] else None
 
     # Prepare hotspot layer to insert into the SVG before closing tag
     hotspot_elems: List[str] = []
@@ -63,6 +85,17 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
         x = float(spec["x"])  # type: ignore
         y = float(spec["y"])  # type: ignore
         title = f"Előkeltető {key.split('-')[-1]} — kattints a részletekért"
+        hotspot_elems.append(
+            f'<g class="hotspot" data-key="{key}">'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="40" fill="#000" fill-opacity="0.08" stroke="none" />'
+            f'<title>{title}</title>'
+            f'</g>'
+        )
+    # Transfer hotspots (parent-pair batches)
+    for key, spec in transfer_nodes.items():
+        x = float(spec["x"])  # type: ignore
+        y = float(spec["y"])  # type: ignore
+        title = f"Transzfer {key.split('-')[-1]} — kattints a részletekért"
         hotspot_elems.append(
             f'<g class="hotspot" data-key="{key}">'
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="40" fill="#000" fill-opacity="0.08" stroke="none" />'
@@ -100,26 +133,29 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
 
   <div id=\"popover\" class=\"popover\">
     <header>
-      <span id=\"modal-title\">Gép részletek</span>
+      <span id=\"modal-title\">Részletek</span>
       <button class=\"close\" onclick=\"document.getElementById('popover').style.display='none'\">✕</button>
     </header>
-    <div class=\"charts\"> 
+    <div id=\"charts\" class=\"charts\"> 
       <div id=\"chart-temp\" class=\"chart\"></div>
       <div id=\"chart-hum\" class=\"chart\"></div>
       <div id=\"chart-co2\" class=\"chart\"></div>
     </div>
+    <div id=\"stats\" style=\"display:none; padding:12px; color:#e6f0ff\"></div>
   </div>
 
   <script>$hc_js</script>
   <script>$sankey_js</script>
   <script>
     const HATCHER_DATA = $data_json;
+    const TRANSFER_STATS = $transfer_json;
     const pop = document.getElementById('popover');
     const titleEl = document.getElementById('modal-title');
     const elTemp = document.getElementById('chart-temp');
     const elHum = document.getElementById('chart-hum');
     const elCO2 = document.getElementById('chart-co2');
-    const elAir = null, elTurn = null, elNoise = null;
+    const chartsWrap = document.getElementById('charts');
+    const statsWrap = document.getElementById('stats');
     const svgEl = document.querySelector('svg');
 
     // Nice, readable palette per metric
@@ -241,8 +277,9 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
       if (!target) return;
       const key = target.dataset.key;
       const isSetter = key.startsWith('setter-');
-      const titleRole = isSetter ? 'Előkeltető' : 'Utókeltető';
-      titleEl.textContent = titleRole + ' ' + (key.split('-').pop()) + ' — gép paraméterei';
+      const isTransfer = key.startsWith('parent');
+      const titleRole = isTransfer ? 'Transzfer' : (isSetter ? 'Előkeltető' : 'Utókeltető');
+      titleEl.textContent = titleRole + ' ' + (key.split('-').pop()) + (isTransfer ? ' — batch statisztika' : ' — gép paraméterei');
       // position near click, keep on-screen
       const width = Math.min(880, window.innerWidth * 0.92);
       const height = Math.min(800, window.innerHeight * 0.86);
@@ -254,6 +291,20 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
       pop.style.left = px + 'px';
       pop.style.top = py + 'px';
       pop.style.display = 'block';
+      if (isTransfer) {
+        chartsWrap.style.display = 'none';
+        statsWrap.style.display = 'block';
+        const st = TRANSFER_STATS[key] || null;
+        statsWrap.innerHTML = st ? `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><div style=\"opacity:.7\">Szállítmányok</div><div style=\"font-size:20px\">$${st.shipments}</div></div>
+            <div><div style=\"opacity:.7\">Részarány</div><div style=\"font-size:20px\">$${st.share_pct}%</div></div>
+            <div><div style=\"opacity:.7\">Tojás a barnak</div><div style=\"font-size:20px\">$${Math.round(st.eggs_to_barn).toLocaleString('hu-HU')}</div></div>
+            <div><div style=\"opacity:.7\">Csibe a barnak</div><div style=\"font-size:20px\">$${Math.round(st.chicks_to_barn).toLocaleString('hu-HU')}</div></div>
+            <div><div style=\"opacity:.7\">Batch kora</div><div style=\"font-size:20px\">$${st.age_days ?? 'n/a'} nap</div></div>
+          </div>` : '<div>Nincs adat ehhez a szülőpárhoz.</div>';
+        return;
+      } else { chartsWrap.style.display='grid'; statsWrap.style.display='none'; }
       // Generate metric-specific series and render with nicer colors
       const temp = genTemp(isSetter);
       const hum  = genHum(isSetter);
@@ -307,6 +358,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
         title=f"{bf.barn_id} · {bf.cutoff.date().isoformat()}",
         svg=injected_svg,
         data_json=json.dumps(chart_data, ensure_ascii=False),
+        transfer_json=json.dumps(transfer_stats, default=str, ensure_ascii=False),
         hc_js=(Path('Highcharts-12/code/highcharts.js').read_text(encoding='utf-8') if Path('Highcharts-12/code/highcharts.js').exists() else ''),
         sankey_js=(Path('Highcharts-12/code/modules/sankey.js').read_text(encoding='utf-8') if Path('Highcharts-12/code/modules/sankey.js').exists() else ''),
     )
