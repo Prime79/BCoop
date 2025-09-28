@@ -11,7 +11,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+import statistics
 from collections import defaultdict
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -39,18 +42,136 @@ def compute_hatcher_breakdown(bf: BarnFlow) -> Dict[str, List[Tuple[str, float]]
     return result
 
 
-def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
+def _safe_json_loads(raw: str | None) -> dict:
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+
+
+@lru_cache(maxsize=4)
+def _load_yield_records(flow_path: str) -> List[Dict[str, object]]:
+    path = Path(flow_path)
+    if not path.exists():
+        return []
+    try:
+        import polars as pl
+    except ImportError:  # pragma: no cover - fallback guard
+        return []
+    df = pl.read_parquet(
+        path,
+        columns=["shipment_id", "resource_type", "resource_id", "to_state", "metadata"],
+    )
+    eggs: Dict[str, float] = defaultdict(float)
+    chicks: Dict[str, float] = defaultdict(float)
+    parent_map: Dict[str, str] = {}
+    telep_map: Dict[str, set[str]] = defaultdict(set)
+    for row in df.iter_rows(named=True):
+        rid = row["resource_type"]
+        sid = row["shipment_id"]
+        if rid == "setter_slot":
+            state = _safe_json_loads(row["to_state"])
+            eggs[sid] += float(state.get("eggs", 0.0))
+        elif rid == "hatcher_slot":
+            state = _safe_json_loads(row["to_state"])
+            chicks[sid] += float(state.get("chicks", 0.0))
+        elif rid == "inventory":
+            meta = _safe_json_loads(row.get("metadata"))
+            parent = meta.get("parent_pair")
+            if parent:
+                parent_map[sid] = str(parent)
+        elif rid == "barn":
+            resource = str(row.get("resource_id", ""))
+            if "-barn" in resource:
+                telep = resource.split("-barn")[0]
+                telep_map[sid].add(telep)
+    records: List[Dict[str, object]] = []
+    for sid, eggs_val in eggs.items():
+        if eggs_val <= 0:
+            continue
+        parent = parent_map.get(sid)
+        teleps = telep_map.get(sid)
+        chick_val = chicks.get(sid)
+        if not parent or not teleps or chick_val is None:
+            continue
+        telep = next(iter(teleps))
+        yield_val = chick_val / eggs_val if eggs_val else 0.0
+        records.append(
+            {
+                "shipment_id": sid,
+                "parent": parent,
+                "telep": telep,
+                "eggs": eggs_val,
+                "chicks": chick_val,
+                "yield": yield_val,
+            }
+        )
+    return records
+
+
+def _normal_curve(values: List[float]) -> List[List[float]]:
+    if len(values) < 2:
+        return []
+    mean = statistics.mean(values)
+    std = statistics.pstdev(values) or 0.0
+    if std <= 0:
+        std = max(mean * 0.05, 0.01)
+    span = 4 * std
+    start = mean - span
+    end = mean + span
+    points = 80
+    step = (end - start) / points
+    curve: List[List[float]] = []
+    factor = 1.0 / (std * math.sqrt(2 * math.pi))
+    for i in range(points + 1):
+        x = start + i * step
+        y = factor * math.exp(-0.5 * ((x - mean) / std) ** 2)
+        curve.append([round(x, 6), round(y, 6)])
+    return curve
+
+
+def _compute_yield_benchmarks(
+    flow_path: Path,
+    parent_pair: str,
+    telep: str,
+    current_yield: float | None,
+) -> Dict[str, object] | None:
+    records = _load_yield_records(str(flow_path.resolve()))
+    if not records:
+        return None
+    telep_vals = [r["yield"] for r in records if r["parent"] == parent_pair and r["telep"] == telep and r["yield"] > 0]
+    others_vals = [r["yield"] for r in records if r["parent"] == parent_pair and r["telep"] != telep and r["yield"] > 0]
+    bench: Dict[str, object] = {
+        "telep_curve": _normal_curve(telep_vals),
+        "telep_count": len(telep_vals),
+        "others_curve": _normal_curve(others_vals),
+        "others_count": len(others_vals),
+        "current_yield": current_yield,
+        "current_loss": (1.0 - current_yield) if current_yield is not None else None,
+        "telep_label": telep,
+    }
+    if bench["telep_curve"] or bench["others_curve"]:
+        return bench
+    return None
+
+
+def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: Path) -> str:
     nodes = ctx["nodes"]  # type: ignore
     hatcher_nodes = {k: v for k, v in nodes.items() if v.get("column") == "hatcher"}  # type: ignore
     setter_nodes = {k: v for k, v in nodes.items() if v.get("column") == "setter"}  # type: ignore
     transfer_nodes = {k: v for k, v in nodes.items() if v.get("column") == "transfer"}  # type: ignore
     breakdown = compute_hatcher_breakdown(bf)
 
+    telep_name = bf.barn_id.split("-barn")[0]
+
     # Transfer (parent-pair) stats per barn
     transfer_stats: Dict[str, Dict[str, object]] = {}
     for shipment in bf.shipments:
         parent = shipment.parent_pair
-        st = transfer_stats.setdefault(parent, {
+        batch_key = f"batch:{parent}"
+        st = transfer_stats.setdefault(batch_key, {
             'shipments': 0,
             'eggs_to_barn': 0.0,
             'chicks_to_barn': 0.0,
@@ -66,6 +187,19 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
     for v in transfer_stats.values():
         v['share_pct'] = round(100.0 * float(v['chicks_to_barn']) / float(total_chicks), 1)
         v['age_days'] = (bf.cutoff - v['first_inventory']).days if v['first_inventory'] else None
+        v['telep'] = telep_name
+
+    # Attach benchmark curves for each batch
+    for key in list(transfer_stats.keys()):
+        st = transfer_stats[key]
+        eggs_val = float(st.get('eggs_to_barn') or 0.0)
+        chicks_val = float(st.get('chicks_to_barn') or 0.0)
+        current_yield = (chicks_val / eggs_val) if eggs_val else None
+        st['current_yield'] = current_yield
+        raw_parent = key.split(':', 1)[-1]
+        bench = _compute_yield_benchmarks(flow_path, raw_parent, telep_name, current_yield)
+        if bench:
+            st['yield_benchmarks'] = bench
 
     # Prepare hotspot layer to insert into the SVG before closing tag
     hotspot_elems: List[str] = []
@@ -110,6 +244,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
         key: [{"name": sid, "y": qty} for sid, qty in breakdown.get(key, [])]
         for key in hatcher_nodes.keys()
     }
+    transfer_json = json.dumps(transfer_stats, default=str, ensure_ascii=False)
 
     tpl = Template("""<!DOCTYPE html>
 <html lang=\"hu\">
@@ -142,6 +277,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
       <div id=\"chart-co2\" class=\"chart\"></div>
     </div>
     <div id=\"stats\" style=\"display:none; padding:12px; color:#e6f0ff\"></div>
+    <div id=\"benchmark\" class=\"chart\" style=\"display:none; height:260px; padding:8px 12px\"></div>
   </div>
 
   <script>$hc_js</script>
@@ -156,6 +292,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
     const elCO2 = document.getElementById('chart-co2');
     const chartsWrap = document.getElementById('charts');
     const statsWrap = document.getElementById('stats');
+    const benchWrap = document.getElementById('benchmark');
     const svgEl = document.querySelector('svg');
 
     // Nice, readable palette per metric
@@ -277,7 +414,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
       if (!target) return;
       const key = target.dataset.key;
       const isSetter = key.startsWith('setter-');
-      const isTransfer = key.startsWith('parent');
+      const isTransfer = key.startsWith('batch:');
       const titleRole = isTransfer ? 'Transzfer' : (isSetter ? 'Előkeltető' : 'Utókeltető');
       titleEl.textContent = titleRole + ' ' + (key.split('-').pop()) + (isTransfer ? ' — batch statisztika' : ' — gép paraméterei');
       // position near click, keep on-screen
@@ -295,22 +432,83 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
         chartsWrap.style.display = 'none';
         statsWrap.style.display = 'block';
         const st = TRANSFER_STATS[key] || null;
-        statsWrap.innerHTML = st ? `
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div><div style=\"opacity:.7\">Szállítmányok</div><div style=\"font-size:20px\">$${st.shipments}</div></div>
-            <div><div style=\"opacity:.7\">Részarány</div><div style=\"font-size:20px\">$${st.share_pct}%</div></div>
-            <div><div style=\"opacity:.7\">Tojás a barnak</div><div style=\"font-size:20px\">$${Math.round(st.eggs_to_barn).toLocaleString('hu-HU')}</div></div>
-            <div><div style=\"opacity:.7\">Csibe a barnak</div><div style=\"font-size:20px\">$${Math.round(st.chicks_to_barn).toLocaleString('hu-HU')}</div></div>
-            <div><div style=\"opacity:.7\">Batch kora</div><div style=\"font-size:20px\">$${st.age_days ?? 'n/a'} nap</div></div>
-          </div>` : '<div>Nincs adat ehhez a szülőpárhoz.</div>';
+        if (!st) {
+          statsWrap.innerHTML = '<div>Nincs adat ehhez a szülőpárhoz.</div>';
+          benchWrap.style.display = 'none';
+          benchWrap.innerHTML = '';
+          return;
+        }
+        const currentYield = typeof st.current_yield === 'number' ? st.current_yield : null;
+        const yieldText = currentYield !== null ? (currentYield * 100).toFixed(1) + '%' : 'n/a';
+        const lossText = currentYield !== null ? ((1 - currentYield) * 100).toFixed(1) + '%' : 'n/a';
+        const ageText = st.age_days != null ? (st.age_days + ' nap') : 'n/a';
+        const shareText = typeof st.share_pct === 'number' ? st.share_pct.toFixed(1) : String(st.share_pct || '0');
+        const chicksText = Math.round(st.chicks_to_barn).toLocaleString('hu-HU');
+        const statsHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+          + '<div><div style="opacity:.7">Szállítmányok</div><div style="font-size:20px">' + st.shipments + '</div></div>'
+          + '<div><div style="opacity:.7">Részarány</div><div style="font-size:20px">' + shareText + '%</div></div>'
+          + '<div><div style="opacity:.7">Csibe az ólnak</div><div style="font-size:20px">' + chicksText + '</div></div>'
+          + '<div><div style="opacity:.7">Kihozatal</div><div style="font-size:20px">' + yieldText + '</div></div>'
+          + '<div><div style="opacity:.7">Elhullás</div><div style="font-size:20px">' + lossText + '</div></div>'
+          + '<div><div style="opacity:.7">Batch kora</div><div style="font-size:20px">' + ageText + '</div></div>'
+          + '</div>';
+        statsWrap.innerHTML = statsHtml;
+        const bench = st.yield_benchmarks || null;
+        if (bench && ((Array.isArray(bench.telep_curve) && bench.telep_curve.length) || (Array.isArray(bench.others_curve) && bench.others_curve.length))) {
+          benchWrap.style.display = 'block';
+          benchWrap.innerHTML = '';
+          const telepSeries = (bench.telep_curve || []).map(([x, y]) => [x * 100, y]);
+          const othersSeries = (bench.others_curve || []).map(([x, y]) => [x * 100, y]);
+          const series = [];
+          if (telepSeries.length) {
+            series.push({ name: 'Saját telep (' + bench.telep_count + ')', data: telepSeries, type: 'line', color: '#5b8def', lineWidth: 2 });
+          }
+          if (othersSeries.length) {
+            series.push({ name: 'Más telepek (' + bench.others_count + ')', data: othersSeries, type: 'line', color: '#ffa552', lineWidth: 2, dashStyle: 'ShortDash' });
+          }
+          const currentLine = currentYield !== null ? currentYield * 100 : null;
+          const lossLine = currentYield !== null ? (1 - currentYield) * 100 : null;
+          Highcharts.chart(benchWrap, {
+            chart: { backgroundColor: 'transparent' },
+            title: { text: 'Batch kihozatal historikus viszonyban', style: { color: '#e6f0ff' } },
+            xAxis: {
+              title: { text: 'Kihozatal %', style: { color: '#c8cfdb' } },
+              labels: { style: { color: '#c8cfdb' }, format: '{value}%' },
+              plotLines: [
+                ...(currentLine !== null ? [{ value: currentLine, color: '#ffffff', width: 2, dashStyle: 'ShortDash', label: { text: 'Aktuális', style: { color: '#ffffff' }, rotation: 0, align: 'left', x: 6 } }] : []),
+                ...(lossLine !== null ? [{ value: lossLine, color: '#ff4d8d', width: 1.5, dashStyle: 'Dot', label: { text: 'Elhullás', style: { color: '#ff7ab6' }, rotation: 0, align: 'right', x: -6 } }] : []),
+              ],
+            },
+            yAxis: { title: { text: 'Sűrűség', style: { color: '#c8cfdb' } }, labels: { style: { color: '#c8cfdb' } }, gridLineColor: '#223' },
+            legend: { itemStyle: { color: '#e6f0ff' } },
+            tooltip: {
+              shared: true,
+              backgroundColor: '#0f1a2e',
+              borderColor: '#2a3450',
+              style: { color: '#e6f0ff' },
+              valueDecimals: 2,
+              pointFormatter: function () {
+                return '<span style="color:' + this.color + '">●</span> ' + this.series.name + ': <b>' + this.x.toFixed(2) + '%</b><br/>';
+              }
+            },
+            credits: { enabled: false },
+            series
+          });
+        } else {
+          benchWrap.style.display = 'none';
+          benchWrap.innerHTML = '';
+        }
         return;
-      } else { chartsWrap.style.display='grid'; statsWrap.style.display='none'; }
+      } else {
+        chartsWrap.style.display='grid';
+        statsWrap.style.display='none';
+        benchWrap.style.display = 'none';
+        benchWrap.innerHTML = '';
+      }
       // Generate metric-specific series and render with nicer colors
       const temp = genTemp(isSetter);
       const hum  = genHum(isSetter);
       const co2  = genCO2();
-      const air  = genAir();
-      const noise= genNoise();
       const opts = (name, data, unit, color) => ({
         chart: {
           backgroundColor: 'transparent',
@@ -342,12 +540,6 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object]) -> str:
       Highcharts.chart(elTemp, opts('Hőmérséklet', temp, '°C', COLORS.temp));
       Highcharts.chart(elHum,  opts('Relatív páratartalom', hum, '%', COLORS.hum));
       Highcharts.chart(elCO2,  opts('CO₂ koncentráció', co2, '%', COLORS.co2));
-      Highcharts.chart(elAir,  opts('Légáramlás', air, 'm/s', COLORS.air));
-      Highcharts.chart(elNoise,opts('Zaj / rezgésszint', noise, 'dB', COLORS.noise));
-      // Show turning chart only for setter
-      const elTurn = document.getElementById('chart-turn');
-      elTurn.style.display = isSetter ? 'block' : 'none';
-      if (isSetter) { const turn = genTurn(); Highcharts.chart(elTurn, opts('Tojás forgatás', turn, 'alkalom/nap', COLORS.turn)); }
     }});
     document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') pop.style.display = 'none'; });
   </script>
@@ -380,7 +572,7 @@ def main() -> None:
     bf = builder.build(args.barn)
     ctx = build_context(bf)
     svg = render_svg(bf)
-    html = build_html_page(bf, svg, ctx)
+    html = build_html_page(bf, svg, ctx, Path(args.flow_log))
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding='utf-8')

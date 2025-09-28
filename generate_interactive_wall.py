@@ -33,7 +33,8 @@ def main() -> None:
     ap.add_argument("--out", default="notebooks/notebooks/outputs/barn_flow_wall_iframes.html")
     args = ap.parse_args()
 
-    flow = load_flow(Path(args.flow_log))
+    flow_path = Path(args.flow_log)
+    flow = load_flow(flow_path)
     barns = find_barns(flow, args.barn_prefix)
     if not barns:
         raise SystemExit(f"No barns found for prefix {args.barn_prefix}")
@@ -42,13 +43,13 @@ def main() -> None:
     out_dir = Path(args.out).parent
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    builder = BarnFlowBuilder(Path(args.flow_log), Path('hatchery_events.sqlite'))
+    builder = BarnFlowBuilder(flow_path, Path('hatchery_events.sqlite'))
     iframe_paths: List[str] = []
     for barn in barns:
         bf = builder.build(barn)
         ctx = build_context(bf)
         svg = render_svg(bf)
-        html = build_single_html(bf, svg, ctx)
+        html = build_single_html(bf, svg, ctx, flow_path)
         fp = out_dir / f"barn_flow_{barn}_interactive.html"
         fp.write_text(html, encoding='utf-8')
         iframe_paths.append(fp.name)
@@ -82,4 +83,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
