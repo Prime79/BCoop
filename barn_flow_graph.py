@@ -17,7 +17,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from analysis.barn_flow import BarnFlow, BarnFlowBuilder, BarnStateChange, ShipmentFlow
 
@@ -152,6 +152,22 @@ def build_context(barn_flow: BarnFlow) -> Dict[str, object]:
         top_n=TOP_TRUCKS,
         other_key='truck-other',
         other_label='Egyéb kamionok',
+    )
+
+    _apply_flow_ordering(
+        parent_nodes,
+        setter_nodes,
+        transfer_nodes,
+        hatcher_nodes,
+        truck_nodes,
+        cart_entries,
+        barn_flow.shipments,
+        parent_map,
+        setter_map,
+        transfer_map,
+        hatcher_map,
+        truck_map,
+        truck_shipment_totals,
     )
 
     nodes = _layout_nodes(parent_nodes, setter_nodes, transfer_nodes, hatcher_nodes, truck_nodes)
@@ -353,6 +369,268 @@ def _node_anchor(node_key: str, side: str) -> Tuple[float, float]:
 
 
 NODE_REGISTRY: Dict[str, Dict[str, float]] = {}
+
+
+def _ensure_node_key(nodes: List[AggregatedNode], fallback_key: str) -> str:
+    """Return `fallback_key` if present, otherwise fall back to an existing key."""
+    if not nodes:
+        return fallback_key
+    for node in nodes:
+        if node.key == fallback_key:
+            return fallback_key
+    return nodes[-1].key
+
+
+def _is_other_key(key: str) -> bool:
+    return key.endswith('-other') or key.endswith(':other')
+
+
+def _weighted_average(neighbors: List[Tuple[str, float]], order_map: Dict[str, int]) -> Optional[float]:
+    total = 0.0
+    acc = 0.0
+    for neighbor_key, weight in neighbors:
+        pos = order_map.get(neighbor_key)
+        if pos is None:
+            continue
+        acc += pos * weight
+        total += weight
+    if total > 0:
+        return acc / total
+    return None
+
+
+def _sort_nodes_by_neighbors(
+    nodes: List[AggregatedNode],
+    inbound: Dict[str, List[Tuple[str, float]]],
+    inbound_order: Dict[str, int],
+    outbound: Optional[Dict[str, List[Tuple[str, float]]]] = None,
+    outbound_order: Optional[Dict[str, int]] = None,
+) -> None:
+    """Reorder nodes in place to reduce crossings using barycentric scores."""
+
+    decorated: List[Tuple[bool, bool, float, int, AggregatedNode]] = []
+    for idx, node in enumerate(nodes):
+        inbound_avg = _weighted_average(inbound.get(node.key, []), inbound_order)
+        outbound_avg: Optional[float] = None
+        if outbound is not None and outbound_order is not None:
+            outbound_avg = _weighted_average(outbound.get(node.key, []), outbound_order)
+        if inbound_avg is not None and outbound_avg is not None:
+            score = (inbound_avg + outbound_avg) / 2.0
+        else:
+            score = inbound_avg if inbound_avg is not None else outbound_avg
+        missing = score is None
+        if score is None:
+            score = float(idx)
+        decorated.append((
+            _is_other_key(node.key),
+            missing,
+            score,
+            idx,
+            node,
+        ))
+    decorated.sort(key=lambda item: (item[0], item[1], item[2], item[3]))
+    nodes[:] = [item[-1] for item in decorated]
+
+
+def _invert_neighbor_map(mapping: Dict[str, List[Tuple[str, float]]]) -> Dict[str, List[Tuple[str, float]]]:
+    inverted: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    for dst_key, sources in mapping.items():
+        for src_key, weight in sources:
+            inverted[src_key][dst_key] += weight
+    return {src: list(neigh.items()) for src, neigh in inverted.items()}
+
+
+def _collect_neighbor_weights(
+    entries: List[Dict[str, object]],
+    *,
+    src_attr: str,
+    src_map: Dict[str, str],
+    src_default: str,
+    dst_attr: str,
+    dst_map: Dict[str, str],
+    dst_default: str,
+    weight_getter: Callable[[Dict[str, object]], float],
+) -> Dict[str, List[Tuple[str, float]]]:
+    bucket: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    for entry in entries:
+        raw_src = entry.get(src_attr)
+        raw_dst = entry.get(dst_attr)
+        if raw_src is None or raw_dst is None:
+            continue
+        src_key = src_map.get(raw_src, src_default)
+        dst_key = dst_map.get(raw_dst, dst_default)
+        weight = float(weight_getter(entry))
+        if weight <= 0:
+            continue
+        bucket[dst_key][src_key] += weight
+    return {dst: list(src_weights.items()) for dst, src_weights in bucket.items()}
+
+
+def _collect_hatcher_truck_neighbors(
+    shipments: List[ShipmentFlow],
+    cart_entries: List[Dict[str, object]],
+    hatcher_map: Dict[str, str],
+    hatcher_default: str,
+    truck_map: Dict[str, str],
+    truck_default: str,
+    truck_shipment_totals: Dict[Tuple[str, str], float],
+) -> Dict[str, List[Tuple[str, float]]]:
+    bucket: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    for shipment in shipments:
+        shipment_total = shipment.barn_quantity or 0.0
+        if shipment_total <= 0:
+            continue
+        sid = shipment.shipment_id
+        relevant_trucks = [
+            (truck_id, qty)
+            for (truck_id, candidate_sid), qty in truck_shipment_totals.items()
+            if candidate_sid == sid
+        ]
+        if not relevant_trucks:
+            continue
+        for truck_id, qty in relevant_trucks:
+            agg_truck = truck_map.get(truck_id, truck_default)
+            if agg_truck is None:
+                agg_truck = truck_default
+            share = qty / shipment_total if shipment_total else 0.0
+            if share <= 0:
+                continue
+            for cart in shipment.cart_contributions:
+                hatcher_machine = cart.hatcher_id.split('-cart')[0] if cart.hatcher_id else 'hatcher-unknown'
+                agg_hatcher = hatcher_map.get(hatcher_machine, hatcher_default)
+                bucket[agg_truck][agg_hatcher] += float(cart.barn_chicks) * share
+    return {truck: list(hatchers.items()) for truck, hatchers in bucket.items()}
+
+
+def _apply_flow_ordering(
+    parent_nodes: List[AggregatedNode],
+    setter_nodes: List[AggregatedNode],
+    transfer_nodes: List[AggregatedNode],
+    hatcher_nodes: List[AggregatedNode],
+    truck_nodes: List[AggregatedNode],
+    cart_entries: List[Dict[str, object]],
+    shipments: List[ShipmentFlow],
+    parent_map: Dict[str, str],
+    setter_map: Dict[str, str],
+    transfer_map: Dict[str, str],
+    hatcher_map: Dict[str, str],
+    truck_map: Dict[str, str],
+    truck_shipment_totals: Dict[Tuple[str, str], float],
+) -> None:
+    if not cart_entries:
+        return
+
+    parent_default = _ensure_node_key(parent_nodes, 'parent-other')
+    setter_default = _ensure_node_key(setter_nodes, 'setter-other')
+    transfer_default = _ensure_node_key(transfer_nodes, 'batch:other')
+    hatcher_default = _ensure_node_key(hatcher_nodes, 'hatcher-other')
+    truck_default = _ensure_node_key(truck_nodes, 'truck-other')
+
+    parent_order = {node.key: idx for idx, node in enumerate(parent_nodes)}
+    setter_order = {node.key: idx for idx, node in enumerate(setter_nodes)}
+    transfer_order = {node.key: idx for idx, node in enumerate(transfer_nodes)}
+    hatcher_order = {node.key: idx for idx, node in enumerate(hatcher_nodes)}
+    truck_order = {node.key: idx for idx, node in enumerate(truck_nodes)}
+
+    for _ in range(2):
+        parent_to_setter = _collect_neighbor_weights(
+            cart_entries,
+            src_attr='parent',
+            src_map=parent_map,
+            src_default=parent_default,
+            dst_attr='setter_machine',
+            dst_map=setter_map,
+            dst_default=setter_default,
+            weight_getter=lambda e: (float(e.get('barn_eggs') or 0.0) or float(e.get('barn_chicks') or 0.0)),
+        )
+        _sort_nodes_by_neighbors(setter_nodes, parent_to_setter, parent_order)
+        setter_order = {node.key: idx for idx, node in enumerate(setter_nodes)}
+
+        setter_to_transfer = _collect_neighbor_weights(
+            cart_entries,
+            src_attr='setter_machine',
+            src_map=setter_map,
+            src_default=setter_default,
+            dst_attr='parent',
+            dst_map=transfer_map,
+            dst_default=transfer_default,
+            weight_getter=lambda e: float(e.get('barn_chicks') or 0.0),
+        )
+        transfer_out_map = _invert_neighbor_map(setter_to_transfer)
+        _sort_nodes_by_neighbors(
+            transfer_nodes,
+            setter_to_transfer,
+            setter_order,
+            outbound=transfer_out_map,
+            outbound_order=hatcher_order,
+        )
+        transfer_order = {node.key: idx for idx, node in enumerate(transfer_nodes)}
+
+        transfer_to_hatcher = _collect_neighbor_weights(
+            cart_entries,
+            src_attr='parent',
+            src_map=transfer_map,
+            src_default=transfer_default,
+            dst_attr='hatcher_machine',
+            dst_map=hatcher_map,
+            dst_default=hatcher_default,
+            weight_getter=lambda e: float(e.get('barn_chicks') or 0.0),
+        )
+        hatcher_out_map = _invert_neighbor_map(transfer_to_hatcher)
+        _sort_nodes_by_neighbors(
+            hatcher_nodes,
+            transfer_to_hatcher,
+            transfer_order,
+            outbound=None,
+            outbound_order=None,
+        )
+        hatcher_order = {node.key: idx for idx, node in enumerate(hatcher_nodes)}
+
+        hatcher_to_truck = _collect_hatcher_truck_neighbors(
+            shipments,
+            cart_entries,
+            hatcher_map,
+            hatcher_default,
+            truck_map,
+            truck_default,
+            truck_shipment_totals,
+        )
+        _sort_nodes_by_neighbors(truck_nodes, hatcher_to_truck, hatcher_order)
+        truck_order = {node.key: idx for idx, node in enumerate(truck_nodes)}
+
+        # Right-to-left refinement (allowing upstream columns to react)
+        parent_out_map = _invert_neighbor_map(parent_to_setter)
+        _sort_nodes_by_neighbors(parent_nodes, parent_out_map, setter_order)
+        parent_order = {node.key: idx for idx, node in enumerate(parent_nodes)}
+
+        setter_out_map = _invert_neighbor_map(setter_to_transfer)
+        _sort_nodes_by_neighbors(
+            setter_nodes,
+            parent_to_setter,
+            parent_order,
+            outbound=setter_out_map,
+            outbound_order=transfer_order,
+        )
+        setter_order = {node.key: idx for idx, node in enumerate(setter_nodes)}
+
+        hatcher_out_map = _invert_neighbor_map(hatcher_to_truck)
+        _sort_nodes_by_neighbors(
+            transfer_nodes,
+            setter_to_transfer,
+            setter_order,
+            outbound=_invert_neighbor_map(transfer_to_hatcher),
+            outbound_order=hatcher_order,
+        )
+        transfer_order = {node.key: idx for idx, node in enumerate(transfer_nodes)}
+
+        _sort_nodes_by_neighbors(
+            hatcher_nodes,
+            transfer_to_hatcher,
+            transfer_order,
+            outbound=hatcher_out_map,
+            outbound_order=truck_order,
+        )
+        hatcher_order = {node.key: idx for idx, node in enumerate(hatcher_nodes)}
 
 
 def _layout_nodes(
