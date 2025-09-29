@@ -5,7 +5,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import simpy
@@ -199,6 +199,12 @@ class ChickSimulation:
             yield simpy.events.AllOf(self.env, cart_processes)
         cart_results = [proc.value for proc in cart_processes]
 
+        # Clear cohesion hints to avoid leaking preferences to future shipments
+        self._preferred_setter.pop(shipment_id, None)
+        self._setter_pref_event.pop(shipment_id, None)
+        self._preferred_hatcher.pop(shipment_id, None)
+        self._hatcher_pref_event.pop(shipment_id, None)
+
         total_discarded = sum(result.discarded for result in cart_results)
         total_fertile = sum(result.fertile for result in cart_results)
         total_chicks = sum(result.chicks for result in cart_results)
@@ -315,16 +321,25 @@ class ChickSimulation:
         # Enforce setter cohesion: first cart chooses machine, others wait for that choice
         if shipment_id not in self._setter_pref_event:
             self._setter_pref_event[shipment_id] = self.env.event()
+        setter_event = self._setter_pref_event[shipment_id]
         pref_setter = self._preferred_setter.get(shipment_id)
-        if pref_setter:
-            slot_id = yield self.pre_hatch_slots.get(lambda s: str(s).startswith(pref_setter))  # type: ignore[arg-type]
-        else:
-            # Become the chooser: take any slot, then announce the machine prefix
+        if pref_setter is None:
+            # Mark selection in progress so followers wait until event fires
+            self._preferred_setter[shipment_id] = "__selecting__"
             slot_id = yield self.pre_hatch_slots.get()
-            if shipment_id not in self._preferred_setter:
-                self._preferred_setter[shipment_id] = str(slot_id).split('-cart')[0]
-                if not self._setter_pref_event[shipment_id].triggered:
-                    self._setter_pref_event[shipment_id].succeed()
+            chosen_prefix = str(slot_id).split('-cart')[0]
+            self._preferred_setter[shipment_id] = chosen_prefix
+            if not setter_event.triggered:
+                setter_event.succeed(chosen_prefix)
+        elif pref_setter == "__selecting__":
+            chosen_prefix = yield setter_event
+            slot_id = yield self.pre_hatch_slots.get(lambda s: str(s).startswith(chosen_prefix))  # type: ignore[arg-type]
+        else:
+            if not setter_event.triggered:
+                chosen_prefix = yield setter_event
+            else:
+                chosen_prefix = pref_setter
+            slot_id = yield self.pre_hatch_slots.get(lambda s: str(s).startswith(chosen_prefix))  # type: ignore[arg-type]
         self.flow_writer.log(
             shipment_id,
             resource_id=slot_id,
@@ -353,16 +368,24 @@ class ChickSimulation:
         # Enforce hatcher cohesion: wait for chosen machine if not yet decided
         if shipment_id not in self._hatcher_pref_event:
             self._hatcher_pref_event[shipment_id] = self.env.event()
+        hatcher_event = self._hatcher_pref_event[shipment_id]
         pref_hatcher = self._preferred_hatcher.get(shipment_id)
-        if pref_hatcher:
-            hatch_slot_id = yield self.hatch_slots.get(lambda s: str(s).startswith(pref_hatcher))  # type: ignore[arg-type]
-        else:
-            # Become the chooser for hatcher: take any slot and fix the machine prefix for the shipment
+        if pref_hatcher is None:
+            self._preferred_hatcher[shipment_id] = "__selecting__"
             hatch_slot_id = yield self.hatch_slots.get()
-            if shipment_id not in self._preferred_hatcher:
-                self._preferred_hatcher[shipment_id] = str(hatch_slot_id).split('-cart')[0]
-                if not self._hatcher_pref_event[shipment_id].triggered:
-                    self._hatcher_pref_event[shipment_id].succeed()
+            chosen_hatcher = str(hatch_slot_id).split('-cart')[0]
+            self._preferred_hatcher[shipment_id] = chosen_hatcher
+            if not hatcher_event.triggered:
+                hatcher_event.succeed(chosen_hatcher)
+        elif pref_hatcher == "__selecting__":
+            chosen_hatcher = yield hatcher_event
+            hatch_slot_id = yield self.hatch_slots.get(lambda s: str(s).startswith(chosen_hatcher))  # type: ignore[arg-type]
+        else:
+            if not hatcher_event.triggered:
+                chosen_hatcher = yield hatcher_event
+            else:
+                chosen_hatcher = pref_hatcher
+            hatch_slot_id = yield self.hatch_slots.get(lambda s: str(s).startswith(chosen_hatcher))  # type: ignore[arg-type]
         self.flow_writer.log(
             shipment_id,
             resource_id=hatch_slot_id,

@@ -90,3 +90,25 @@ blocked by environment limitations.
             self.conn.commit()
             self._pending = 0
         self.conn.close()
+
+
+class NoOpEventLogger:
+    """Drop-in replacement when audit logging is disabled."""
+
+    def __init__(self) -> None:
+        self.db_path = Path('')
+
+    def log(
+        self,
+        sim_day: float,
+        entity_id: str,
+        stage: str,
+        status: str,
+        quantity: Optional[float] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        real_ts: Optional[str] = None,
+    ) -> None:
+        return None
+
+    def close(self) -> None:
+        return None

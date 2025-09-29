@@ -2,17 +2,17 @@
 <html lang="hu">
 <head>
   <meta charset="utf-8" />
-  <title>Kaba-barn-01 · 2025-02-26</title>
+  <title>Kaba-barn-01 · 2025-03-02</title>
   <style>
     body {{ margin: 0; background:#0b1220; }}
     .wrap {{ max-width: 1600px; margin: 0 auto; }}
     svg {{ width: 100%; height: auto; display:block; }}
     .hotspot {{ cursor: pointer; pointer-events: all; }}
-    .popover { position: fixed; display: none; z-index: 9999; width: min(880px, 92vw); max-height: 86vh; overflow: auto; background: #0e172a; border: 1px solid #2a3450; border-radius: 12px; box-shadow: 0 12px 48px rgba(0,0,0,0.45); }
-    .popover header { display:flex; align-items:center; justify-content:space-between; padding: 8px 12px 10px; color:#e6f0ff; font: 600 16px system-ui; position: sticky; top: 0; background:#0e172a; border-bottom: 1px solid #223; }
-    .close {{ cursor:pointer; border:none; background:transparent; color:#9aa4b2; font-size:18px; }}
-    .charts {{ display: grid; grid-template-columns: 1fr; gap: 16px; padding: 8px; }}
-    .chart {{ height: 260px; }}
+    .popover { position: fixed; display: none; z-index: 9999; width: min(800px, 88vw); max-height: 76vh; overflow: hidden; background: #0e172a; border: 1px solid #2a3450; border-radius: 12px; box-shadow: 0 12px 48px rgba(0,0,0,0.45); }
+    .popover header { display:flex; align-items:center; justify-content:space-between; padding: 6px 14px 8px; color:#e6f0ff; font: 600 15px system-ui; background:#0e172a; border-bottom: 1px solid #223; }
+    .close {{ cursor:pointer; border:none; background:transparent; color:#9aa4b2; font-size:17px; padding:2px 4px; }}
+    .charts {{ display: grid; grid-template-columns: 1fr; gap: 10px; padding: 10px 14px 6px; }}
+    .chart {{ min-height: 220px; }}
   </style>
 </head>
 <body>
@@ -38,52 +38,43 @@
             </style>
         </defs>
 <g class="group" id="group-parent"><rect x="30.0" y="320.0" width="220.0" height="460.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="140.0" y="304.0" text-anchor="middle" font-size="15" opacity="0.9">Tojásfarmok / szülőpárok</text></g>
-<g class="group" id="group-setter"><rect x="306.0" y="180.0" width="220.0" height="740.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="416.0" y="164.0" text-anchor="middle" font-size="15" opacity="0.9">Előkeltetők</text></g>
+<g class="group" id="group-setter"><rect x="306.0" y="320.0" width="220.0" height="460.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="416.0" y="304.0" text-anchor="middle" font-size="15" opacity="0.9">Előkeltetők</text></g>
 <g class="group" id="group-transfer"><rect x="582.0" y="320.0" width="220.0" height="460.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="692.0" y="304.0" text-anchor="middle" font-size="15" opacity="0.9">Transzfer (batch-ek)</text></g>
-<g class="group" id="group-hatcher"><rect x="858.0" y="250.0" width="220.0" height="600.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="968.0" y="234.0" text-anchor="middle" font-size="15" opacity="0.9">Utókeltetők</text></g>
+<g class="group" id="group-hatcher"><rect x="858.0" y="320.0" width="220.0" height="460.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="968.0" y="304.0" text-anchor="middle" font-size="15" opacity="0.9">Utókeltetők</text></g>
 <g class="group" id="group-truck"><rect x="1134.0" y="320.0" width="220.0" height="460.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="1244.0" y="304.0" text-anchor="middle" font-size="15" opacity="0.9">Szállítás</text></g>
 <g class="group" id="group-barn"><rect x="1410.0" y="460.0" width="220.0" height="180.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="1520.0" y="444.0" text-anchor="middle" font-size="15" opacity="0.9">Cél ól</text></g>
-<path d="M184.0,550.0 C249.8,550.0 306.2,550.0 372.0,550.0" fill="none" stroke="#3b4556" stroke-width="1.87" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M184.0,550.0 C249.8,550.0 306.2,410.0 372.0,410.0" fill="none" stroke="#3b4556" stroke-width="3.72" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M184.0,690.0 C249.8,690.0 306.2,690.0 372.0,690.0" fill="none" stroke="#3b4556" stroke-width="2.21" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M184.0,690.0 C249.8,690.0 306.2,830.0 372.0,830.0" fill="none" stroke="#3b4556" stroke-width="1.39" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M184.0,410.0 C249.8,410.0 306.2,270.0 372.0,270.0" fill="none" stroke="#3b4556" stroke-width="9.20" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M460.0,550.0 C525.8,550.0 582.2,550.0 648.0,550.0" fill="none" stroke="#465065" stroke-width="1.77" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M460.0,410.0 C525.8,410.0 582.2,550.0 648.0,550.0" fill="none" stroke="#465065" stroke-width="3.20" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M460.0,690.0 C525.8,690.0 582.2,690.0 648.0,690.0" fill="none" stroke="#465065" stroke-width="1.99" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M460.0,830.0 C525.8,830.0 582.2,690.0 648.0,690.0" fill="none" stroke="#465065" stroke-width="1.34" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M460.0,270.0 C525.8,270.0 582.2,410.0 648.0,410.0" fill="none" stroke="#465065" stroke-width="7.64" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M736.0,550.0 C801.8,550.0 858.2,620.0 924.0,620.0" fill="none" stroke="#4b566a" stroke-width="1.77" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M736.0,550.0 C801.8,550.0 858.2,480.0 924.0,480.0" fill="none" stroke="#4b566a" stroke-width="3.20" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M736.0,690.0 C801.8,690.0 858.2,760.0 924.0,760.0" fill="none" stroke="#4b566a" stroke-width="2.14" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M736.0,410.0 C801.8,410.0 858.2,340.0 924.0,340.0" fill="none" stroke="#4b566a" stroke-width="7.64" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
-<path d="M1012.0,620.0 C1077.8,620.0 1134.2,550.0 1200.0,550.0" fill="none" stroke="#55617a" stroke-width="1.77" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
-<path d="M1012.0,480.0 C1077.8,480.0 1134.2,550.0 1200.0,550.0" fill="none" stroke="#55617a" stroke-width="3.20" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
-<path d="M1012.0,760.0 C1077.8,760.0 1134.2,690.0 1200.0,690.0" fill="none" stroke="#55617a" stroke-width="2.14" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
-<path d="M1012.0,340.0 C1077.8,340.0 1134.2,410.0 1200.0,410.0" fill="none" stroke="#55617a" stroke-width="7.64" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
-<path d="M1288.0,550.0 C1353.8,550.0 1410.2,550.0 1476.0,550.0" fill="none" stroke="#5f6d85" stroke-width="3.77" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
-<path d="M1288.0,690.0 C1353.8,690.0 1410.2,550.0 1476.0,550.0" fill="none" stroke="#5f6d85" stroke-width="2.14" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
-<path d="M1288.0,410.0 C1353.8,410.0 1410.2,550.0 1476.0,550.0" fill="none" stroke="#5f6d85" stroke-width="7.64" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
-<g class="node" transform="translate(140.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 04</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">71 439 db</text></g>
-<g class="node" transform="translate(140.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">28 506 db</text></g>
-<g class="node" transform="translate(140.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 11</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">10 649 db</text></g>
-<g class="node" transform="translate(416.0,270.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 10</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">71 439 db</text></g>
-<g class="node" transform="translate(416.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">22 485 db</text></g>
-<g class="node" transform="translate(416.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">6 020 db</text></g>
-<g class="node" transform="translate(416.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 03</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">8 996 db</text></g>
-<g class="node" transform="translate(416.0,830.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 04</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">1 653 db</text></g>
-<g class="node" transform="translate(692.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P04</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">57 482 db</text></g>
-<g class="node" transform="translate(692.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">22 966 db</text></g>
-<g class="node" transform="translate(692.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P11</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">8 352 db</text></g>
-<g class="node" transform="translate(968.0,340.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 08</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">57 482 db</text></g>
-<g class="node" transform="translate(968.0,480.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">17 904 db</text></g>
-<g class="node" transform="translate(968.0,620.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">5 062 db</text></g>
-<g class="node" transform="translate(968.0,760.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 03</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">8 352 db</text></g>
-<g class="node" transform="translate(1244.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">57 482 db</text></g>
-<g class="node" transform="translate(1244.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">22 966 db</text></g>
-<g class="node" transform="translate(1244.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">8 352 db</text></g>
-<g class="node" transform="translate(1520.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kaba-barn-01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">88 800 db</text></g>
-<text class="label" x="80" y="72" font-size="24" fill="#f2f5ff" opacity="0.95">Kaba-barn-01 · 2025-02-26</text>
+<path d="M184.0,690.0 C249.8,690.0 306.2,690.0 372.0,690.0" fill="none" stroke="#3b4556" stroke-width="1.84" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M184.0,410.0 C249.8,410.0 306.2,410.0 372.0,410.0" fill="none" stroke="#3b4556" stroke-width="9.20" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M184.0,550.0 C249.8,550.0 306.2,550.0 372.0,550.0" fill="none" stroke="#3b4556" stroke-width="5.98" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M460.0,690.0 C525.8,690.0 582.2,690.0 648.0,690.0" fill="none" stroke="#465065" stroke-width="1.72" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M460.0,410.0 C525.8,410.0 582.2,410.0 648.0,410.0" fill="none" stroke="#465065" stroke-width="7.55" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M460.0,550.0 C525.8,550.0 582.2,550.0 648.0,550.0" fill="none" stroke="#465065" stroke-width="5.02" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M736.0,690.0 C801.8,690.0 858.2,690.0 924.0,690.0" fill="none" stroke="#4b566a" stroke-width="1.72" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M736.0,410.0 C801.8,410.0 858.2,410.0 924.0,410.0" fill="none" stroke="#4b566a" stroke-width="7.55" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M736.0,550.0 C801.8,550.0 858.2,550.0 924.0,550.0" fill="none" stroke="#4b566a" stroke-width="5.02" stroke-linecap="round" opacity="0.75" marker-end="url(#arrow)"/>
+<path d="M1012.0,690.0 C1077.8,690.0 1134.2,690.0 1200.0,690.0" fill="none" stroke="#55617a" stroke-width="1.72" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
+<path d="M1012.0,410.0 C1077.8,410.0 1134.2,410.0 1200.0,410.0" fill="none" stroke="#55617a" stroke-width="7.55" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
+<path d="M1012.0,550.0 C1077.8,550.0 1134.2,550.0 1200.0,550.0" fill="none" stroke="#55617a" stroke-width="5.02" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
+<path d="M1288.0,690.0 C1353.8,690.0 1410.2,550.0 1476.0,550.0" fill="none" stroke="#5f6d85" stroke-width="1.72" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
+<path d="M1288.0,410.0 C1353.8,410.0 1410.2,550.0 1476.0,550.0" fill="none" stroke="#5f6d85" stroke-width="7.55" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
+<path d="M1288.0,550.0 C1353.8,550.0 1410.2,550.0 1476.0,550.0" fill="none" stroke="#5f6d85" stroke-width="5.02" stroke-linecap="round" opacity="0.85" marker-end="url(#arrow)"/>
+<g class="node" transform="translate(140.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 12</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">40 568 db</text></g>
+<g class="node" transform="translate(140.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 07</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 234 db</text></g>
+<g class="node" transform="translate(140.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 15</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">3 232 db</text></g>
+<g class="node" transform="translate(416.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 21</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">40 568 db</text></g>
+<g class="node" transform="translate(416.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 26</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 234 db</text></g>
+<g class="node" transform="translate(416.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 08</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">3 232 db</text></g>
+<g class="node" transform="translate(692.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P12</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">32 194 db</text></g>
+<g class="node" transform="translate(692.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P07</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">19 382 db</text></g>
+<g class="node" transform="translate(692.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P15</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">2 624 db</text></g>
+<g class="node" transform="translate(968.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 21</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">32 194 db</text></g>
+<g class="node" transform="translate(968.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 26</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">19 382 db</text></g>
+<g class="node" transform="translate(968.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 08</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">2 624 db</text></g>
+<g class="node" transform="translate(1244.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">32 194 db</text></g>
+<g class="node" transform="translate(1244.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">19 382 db</text></g>
+<g class="node" transform="translate(1244.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">2 624 db</text></g>
+<g class="node" transform="translate(1520.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kaba-barn-01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">54 200 db</text></g>
+<text class="label" x="80" y="72" font-size="24" fill="#f2f5ff" opacity="0.95">Kaba-barn-01 · 2025-03-02</text>
 <g transform="translate(60,820)">
     <circle cx="0" cy="0" r="6" fill="#00e0ff"/>
     <text class="label" x="14" y="5" font-size="14">Kiemelt élő batch útvonala</text>
@@ -93,8 +84,8 @@
     <text class="label" x="20" y="63" font-size="14">Csoport kerete</text>
 </g>
 
-<g transform="translate(1640.0,430.0)"><text class="label" x="0" y="0" font-size="15" opacity="0.85">Ól állapotváltozásai</text><text class="label" x="0" y="24" font-size="13" opacity="0.75">2025-02-01 17:50 +22966 shipment-1 · shipment-1-truck-02</text><text class="label" x="0" y="44" font-size="13" opacity="0.75">2025-02-26 11:35 +8352 shipment-70 · shipment-70-truck-02</text><text class="label" x="0" y="64" font-size="13" opacity="0.75">2025-02-26 17:01 +57482 shipment-78 · shipment-78-truck-01</text></g>
-<g id="hotspots"><g class="hotspot" data-key="hatcher-08"><circle cx="968.0" cy="340.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 08 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-02"><circle cx="968.0" cy="480.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 02 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-01"><circle cx="968.0" cy="620.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 01 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-03"><circle cx="968.0" cy="760.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 03 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-10"><circle cx="416.0" cy="270.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 10 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-02"><circle cx="416.0" cy="410.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 02 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-01"><circle cx="416.0" cy="550.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 01 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-03"><circle cx="416.0" cy="690.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 03 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-04"><circle cx="416.0" cy="830.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 04 — kattints a részletekért</title></g><g class="hotspot" data-key="batch:parent-pair-4"><circle cx="692.0" cy="410.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Transzfer 4 — kattints a részletekért</title></g><g class="hotspot" data-key="batch:parent-pair-2"><circle cx="692.0" cy="550.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Transzfer 2 — kattints a részletekért</title></g><g class="hotspot" data-key="batch:parent-pair-11"><circle cx="692.0" cy="690.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Transzfer 11 — kattints a részletekért</title></g></g>
+<g transform="translate(1640.0,430.0)"><text class="label" x="0" y="0" font-size="15" opacity="0.85">Ól állapotváltozásai</text><text class="label" x="0" y="24" font-size="13" opacity="0.75">2025-02-02 03:43 +2624 shipment-14 · shipment-14-truck-01</text><text class="label" x="0" y="44" font-size="13" opacity="0.75">2025-03-02 18:49 +32194 shipment-41 · shipment-41-truck-01</text><text class="label" x="0" y="64" font-size="13" opacity="0.75">2025-03-02 22:17 +19382 shipment-51 · shipment-51-truck-01</text></g>
+<g id="hotspots"><g class="hotspot" data-key="hatcher-21"><circle cx="968.0" cy="410.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 21 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-26"><circle cx="968.0" cy="550.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 26 — kattints a részletekért</title></g><g class="hotspot" data-key="hatcher-08"><circle cx="968.0" cy="690.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Utókeltető 08 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-21"><circle cx="416.0" cy="410.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 21 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-26"><circle cx="416.0" cy="550.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 26 — kattints a részletekért</title></g><g class="hotspot" data-key="setter-08"><circle cx="416.0" cy="690.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Előkeltető 08 — kattints a részletekért</title></g><g class="hotspot" data-key="batch:parent-pair-12"><circle cx="692.0" cy="410.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Transzfer 12 — kattints a részletekért</title></g><g class="hotspot" data-key="batch:parent-pair-7"><circle cx="692.0" cy="550.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Transzfer 7 — kattints a részletekért</title></g><g class="hotspot" data-key="batch:parent-pair-15"><circle cx="692.0" cy="690.0" r="40" fill="#000" fill-opacity="0.08" stroke="none" /><title>Transzfer 15 — kattints a részletekért</title></g></g>
 </svg></div>
 
   <div id="popover" class="popover">
@@ -103,12 +94,12 @@
       <button class="close" onclick="document.getElementById('popover').style.display='none'">✕</button>
     </header>
     <div id="charts" class="charts"> 
-      <div id="chart-temp" class="chart"></div>
-      <div id="chart-hum" class="chart"></div>
-      <div id="chart-co2" class="chart"></div>
+      <div id="chart-env" class="chart"></div>
+      <div id="chart-history" class="chart" style="display:none"></div>
     </div>
-    <div id="stats" style="display:none; padding:12px; color:#e6f0ff"></div>
-    <div id="benchmark" class="chart" style="display:none; height:260px; padding:8px 12px"></div>
+    <div id="stats" style="display:none; padding:10px 14px; color:#e6f0ff"></div>
+    <div id="factor" class="chart" style="display:none; padding:6px 14px; min-height:200px"></div>
+    <div id="benchmark" class="chart" style="display:none; padding:6px 14px; min-height:200px"></div>
   </div>
 
   <script>!/**
@@ -132,16 +123,17 @@
  * License: www.highcharts.com/license
  */function(t,e){"object"==typeof exports&&"object"==typeof module?module.exports=e(t._Highcharts,t._Highcharts.SeriesRegistry,t._Highcharts.Point,t._Highcharts.Color,t._Highcharts.SVGElement):"function"==typeof define&&define.amd?define("highcharts/modules/sankey",["highcharts/highcharts"],function(t){return e(t,t.SeriesRegistry,t.Point,t.Color,t.SVGElement)}):"object"==typeof exports?exports["highcharts/modules/sankey"]=e(t._Highcharts,t._Highcharts.SeriesRegistry,t._Highcharts.Point,t._Highcharts.Color,t._Highcharts.SVGElement):t.Highcharts=e(t.Highcharts,t.Highcharts.SeriesRegistry,t.Highcharts.Point,t.Highcharts.Color,t.Highcharts.SVGElement)}("undefined"==typeof window?this:window,(t,e,o,i,s)=>(()=>{"use strict";var n,r,l={28:t=>{t.exports=s},260:t=>{t.exports=o},512:t=>{t.exports=e},620:t=>{t.exports=i},944:e=>{e.exports=t}},a={};function h(t){var e=a[t];if(void 0!==e)return e.exports;var o=a[t]={exports:{}};return l[t](o,o.exports,h),o.exports}h.n=t=>{var e=t&&t.__esModule?()=>t.default:()=>t;return h.d(e,{a:e}),e},h.d=(t,e)=>{for(var o in e)h.o(e,o)&&!h.o(t,o)&&Object.defineProperty(t,o,{enumerable:!0,get:e[o]})},h.o=(t,e)=>Object.prototype.hasOwnProperty.call(t,e);var d={};h.d(d,{default:()=>tc});var p=h(944),c=h.n(p),u=h(512),f=h.n(u);let{series:{prototype:m,prototype:{pointClass:{prototype:g}}}}=f(),{defined:y,extend:x,find:b,merge:v,pick:k}=c();!function(t){function e(){return this.data=[].concat(this.points||[],this.nodes),m.destroy.apply(this,arguments)}function o(){this.nodes&&(this.nodes.forEach(t=>{t.destroy()}),this.nodes.length=0),m.setData.apply(this,arguments)}function i(t){let e=arguments,o=this.isNode?this.linksTo.concat(this.linksFrom):[this.fromNode,this.toNode];"select"!==t&&o.forEach(t=>{t&&t.series&&(g.setState.apply(t,e),!t.isNode&&(t.fromNode.graphic&&g.setState.apply(t.fromNode,e),t.toNode&&t.toNode.graphic&&g.setState.apply(t.toNode,e)))}),g.setState.apply(this,e)}function s(t,e,o,i){let s=this.series.options.nodes,n=this.series.options.data,r=n?.length||0,l=n?.[this.index];if(g.update.call(this,t,!this.isNode&&e,o,i),this.isNode){let t=(s||[]).reduce((t,e,o)=>this.id===e.id?o:t,-1),i=v(s&&s[t]||{},n?.[this.index]||{});n&&(l?n[this.index]=l:n.length=r),s?t>=0?s[t]=i:s.push(i):this.series.options.nodes=[i],k(e,!0)&&this.series.chart.redraw(o)}}t.compose=function(t,n){let r=t.prototype,l=n.prototype;return r.setNodeState=i,r.setState=i,r.update=s,l.destroy=e,l.setData=o,n},t.createNode=function(t){let e=this.pointClass,o=(t,e)=>b(t,t=>t.id===e),i=o(this.nodes,t),s;if(!i){s=this.options.nodes&&o(this.options.nodes,t);let n=new e(this,x({className:"highcharts-node",isNode:!0,id:t,y:1},s));n.linksTo=[],n.linksFrom=[],n.getSum=function(){let t=0,e=0;return n.linksTo.forEach(e=>{t+=e.weight||0}),n.linksFrom.forEach(t=>{e+=t.weight||0}),Math.max(t,e)},n.offset=function(t,e){let o=0;for(let i=0;i<n[e].length;i++){if(n[e][i]===t)return o;o+=n[e][i].weight}},n.hasShape=function(){let t=0;return n.linksTo.forEach(e=>{e.outgoing&&t++}),!n.linksTo.length||t!==n.linksTo.length},n.index=this.nodes.push(n)-1,i=n}return i.formatPrefix="node",i.name=i.name||i.options.id||"",i.mass=k(i.options.mass,i.options.marker&&i.options.marker.radius,this.options.marker&&this.options.marker.radius,4),i},t.destroy=e,t.generatePoints=function(){let t=this.chart,e={};m.generatePoints.call(this),this.nodes||(this.nodes=[]),this.colorCounter=0,this.nodes.forEach(t=>{t.linksFrom.length=0,t.linksTo.length=0,t.level=t.options.level}),this.points.forEach(o=>{y(o.from)&&(e[o.from]||(e[o.from]=this.createNode(o.from)),e[o.from].linksFrom.push(o),o.fromNode=e[o.from],t.styledMode?o.colorIndex=k(o.options.colorIndex,e[o.from].colorIndex):o.color=o.options.color||e[o.from].color),y(o.to)&&(e[o.to]||(e[o.to]=this.createNode(o.to)),e[o.to].linksTo.push(o),o.toNode=e[o.to]),o.name=o.name||o.id},this),this.nodeLookup=e},t.setNodeState=i,t.updateNode=s}(n||(n={}));let C=n;var N=h(260),P=h.n(N);let{column:L}=f().seriesTypes,{defined:S}=c();class T extends L.prototype.pointClass{applyOptions(t,e){return P().prototype.applyOptions.call(this,t,e),S(this.options.level)&&(this.options.column=this.column=this.options.level),this}getClassName(){return(this.isNode?"highcharts-node ":"highcharts-link ")+P().prototype.getClassName.call(this)}getFromNode(){let t=-1,e;for(let o=0;o<this.linksTo.length;o++){let i=this.linksTo[o];i.fromNode.column>t&&i.fromNode!==this&&(t=(e=i.fromNode).column)}return{fromNode:e,fromColumn:t}}setNodeColumn(){S(this.options.column)||(0===this.linksTo.length?this.column=0:this.column=this.getFromNode().fromColumn+1)}isValid(){return this.isNode||"number"==typeof this.weight}}let{defined:w,getAlignFactor:O,relativeLength:M}=c();!function(t){t.compose=function(t,o){return t.sankeyColumn=new e(t,o),t};class e{constructor(t,e){this.points=t,this.series=e}getTranslationFactor(t){let e=this.points,o=e.slice(),i=t.chart,s=t.options.minLinkWidth||0,n,r=0,l,a=(i.plotSizeY||0)-(t.options.borderWidth||0)-(e.length-1)*t.nodePadding;for(;e.length;){for(r=a/e.sankeyColumn.sum(),n=!1,l=e.length;l--;)e[l].getSum()*r<s&&(e.splice(l,1),a=Math.max(0,a-s),n=!0);if(!n)break}for(let t of(e.length=0,o))e.push(t);return r}top(t){let e=this.series,o=e.nodePadding,i=this.points.reduce((i,s)=>(i>0&&(i+=o),i+=Math.max(s.getSum()*t,e.options.minLinkWidth||0)),0);return O(e.options.nodeAlignment||"center")*((e.chart.plotSizeY||0)-i)}left(t){let e=this.series,o=e.chart,i=e.options.equalNodes,s=o.inverted?o.plotHeight:o.plotWidth,n=e.nodePadding,r=this.points.reduce((o,r)=>(o>0&&(o+=n),o+=i?s/r.series.nodes.length-n:Math.max(r.getSum()*t,e.options.minLinkWidth||0)),0);return((o.plotSizeX||0)-Math.round(r))/2}sum(){return this.points.reduce((t,e)=>t+e.getSum(),0)}offset(t,e){let o=this.points,i=this.series,s=i.nodePadding,n=0,r;if(i.is("organization")&&t.hangsFrom)return{absoluteTop:t.hangsFrom.nodeY};for(let l=0;l<o.length;l++){let a=o[l].getSum(),h=Math.max(a*e,i.options.minLinkWidth||0),d=t.options[i.chart.inverted?"offsetHorizontal":"offsetVertical"],p=t.options.offset||0;if(r=a?h+s:0,o[l]===t)return{relativeTop:n+(w(d)?M(d,h):M(p,r))};n+=r}}}t.SankeyColumnAdditions=e}(r||(r={}));let F=r;var W=h(620),H=h.n(W);let{extend:z,isArray:I,isNumber:D,isObject:B,merge:Y,pick:E,relativeLength:A}=c();var _=h(28),R=h.n(_);let{deg2rad:X}=c(),{addEvent:V,merge:j,uniqueKey:G,defined:$,extend:q}=c();function Z(t,e){e=j(!0,{enabled:!0,attributes:{dy:-5,startOffset:"50%",textAnchor:"middle"}},e);let o=this.renderer.url,i=this.text||this,s=i.textPath,{attributes:n,enabled:r}=e;if(t=t||s&&s.path,s&&s.undo(),t&&r){let e=V(i,"afterModifyTree",e=>{if(t&&r){let s=t.attr("id");s||t.attr("id",s=G());let r={x:0,y:0};$(n.dx)&&(r.dx=n.dx,delete n.dx),$(n.dy)&&(r.dy=n.dy,delete n.dy),i.attr(r),this.attr({transform:""}),this.box&&(this.box=this.box.destroy());let l=e.nodes.slice(0);e.nodes.length=0,e.nodes[0]={tagName:"textPath",attributes:q(n,{"text-anchor":n.textAnchor,href:`${o}#${s}`}),children:l}}});i.textPath={path:t,undo:e}}else i.attr({dx:0,dy:0}),delete i.textPath;return this.added&&(i.textCache="",this.renderer.buildText(i)),this}function J(t){let e=t.bBox,o=this.element?.querySelector("textPath");if(o){let t=[],{b:i,h:s}=this.renderer.fontMetrics(this.element),n=s-i,r=RegExp('(<tspan>|<tspan(?!\\sclass="highcharts-br")[^>]*>|<\\/tspan>)',"g"),l=o.innerHTML.replace(r,"").split(/<tspan class="highcharts-br"[^>]*>/),a=l.length,h=(t,e)=>{let{x:s,y:r}=e,l=(o.getRotationOfChar(t)-90)*X,a=Math.cos(l),h=Math.sin(l);return[[s-n*a,r-n*h],[s+i*a,r+i*h]]};for(let e=0,i=0;i<a;i++){let s=l[i].length;for(let n=0;n<s;n+=5)try{let s=e+n+i,[r,l]=h(s,o.getStartPositionOfChar(s));0===n?(t.push(l),t.push(r)):(0===i&&t.unshift(l),i===a-1&&t.push(r))}catch{break}e+=s-1;try{let s=e+i,n=o.getEndPositionOfChar(s),[r,l]=h(s,n);t.unshift(l),t.unshift(r)}catch{break}}t.length&&t.push(t[0].slice()),e.polygon=t}return e}function K(t){let e=t.labelOptions,o=t.point,i=e[o.formatPrefix+"TextPath"]||e.textPath;i&&!e.useHTML&&(this.setTextPath(o.getDataLabelPath?.(this)||o.graphic,i),o.dataLabelPath&&!i.enabled&&(o.dataLabelPath=o.dataLabelPath.destroy()))}let{column:Q,line:U}=f().seriesTypes,{parse:tt}=H(),{getLevelOptions:te,getNodeWidth:to}={getColor:function(t,e){let o,i,s,n,r,l,a=e.index,h=e.mapOptionsToLevel,d=e.parentColor,p=e.parentColorIndex,c=e.series,u=e.colors,f=e.siblings,m=c.points,g=c.chart.options.chart;return t&&(o=m[t.i],i=h[t.level]||{},o&&i.colorByPoint&&(n=o.index%(u?u.length:g.colorCount),s=u&&u[n]),c.chart.styledMode||(r=E(o&&o.options.color,i&&i.color,s,d&&(t=>{let e=i&&i.colorVariation;return e&&"brightness"===e.key&&a&&f?H().parse(t).brighten(e.to*(a/f)).get():t})(d),c.color)),l=E(o&&o.options.colorIndex,i&&i.colorIndex,n,p,e.colorIndex)),{color:r,colorIndex:l}},getLevelOptions:function(t){let e,o,i,s,n,r,l={};if(B(t))for(s=D(t.from)?t.from:1,r=t.levels,o={},e=B(t.defaults)?t.defaults:{},I(r)&&(o=r.reduce((t,o)=>{let i,n,r;return B(o)&&D(o.level)&&(n=E((r=Y({},o)).levelIsConstant,e.levelIsConstant),delete r.levelIsConstant,delete r.level,B(t[i=o.level+(n?0:s-1)])?Y(!0,t[i],r):t[i]=r),t},{})),n=D(t.to)?t.to:1,i=0;i<=n;i++)l[i]=Y({},e,B(o[i])?o[i]:{});return l},getNodeWidth:function(t,e){let{chart:o,options:i}=t,{nodeDistance:s=0,nodeWidth:n=0}=i,{plotSizeX:r=1}=o;if("auto"===n){if("string"==typeof s&&/%$/.test(s))return r/(e+parseFloat(s)/100*(e-1));let t=Number(s);return(r+t)/(e||1)-t}return A(n,r)},setTreeValues:function t(e,o){let i=o.before,s=o.idRoot,n=o.mapIdToNode[s],r=!1!==o.levelIsConstant,l=o.points[e.i],a=l&&l.options||{},h=[],d=0;e.levelDynamic=e.level-(r?0:n.level),e.name=E(l&&l.name,""),e.visible=s===e.id||!0===o.visible,"function"==typeof i&&(e=i(e,o)),e.children.forEach((i,s)=>{let n=z({},o);z(n,{index:s,siblings:e.children.length,visible:e.visible}),i=t(i,n),h.push(i),i.visible&&(d+=i.val)});let p=E(a.value,d);return e.visible=p>=0&&(d>0||e.visible),e.children=h,e.childrenTotal=d,e.isLeaf=e.visible&&!d,e.val=p,e},updateRootId:function(t){let e,o;return B(t)&&(o=B(t.options)?t.options:{},e=E(t.rootNode,o.rootId,""),B(t.userOptions)&&(t.userOptions.rootId=e),t.rootNode=e),e}},{clamp:ti,crisp:ts,extend:tn,isObject:tr,merge:tl,pick:ta,relativeLength:th,stableSort:td}=c();({compose:function(t){V(t,"afterGetBBox",J),V(t,"beforeAddingDataLabel",K);let e=t.prototype;e.setTextPath||(e.setTextPath=Z)}}).compose(R());class tp extends Q{static getDLOptions(t){let e=tr(t.optionsPoint)?t.optionsPoint.dataLabels:{};return tl({style:{}},tr(t.level)?t.level.dataLabels:{},e)}createNodeColumns(){let t=[];for(let e of this.nodes)e.setNodeColumn(),t[e.column]||(t[e.column]=F.compose([],this)),t[e.column].push(e);for(let e=0;e<t.length;e++)void 0===t[e]&&(t[e]=F.compose([],this));return t}order(t,e){if(void 0===t.level)for(let o of(t.level=e,t.linksFrom))o.toNode&&this.order(o.toNode,e+1)}generatePoints(){if(C.generatePoints.apply(this,arguments),this.orderNodes){for(let t of this.nodes)0===t.linksTo.length&&this.order(t,0);td(this.nodes,(t,e)=>t.level-e.level)}}getNodePadding(){let t=this.options.nodePadding||0;if(this.nodeColumns){let e=this.nodeColumns.reduce((t,e)=>Math.max(t,e.length),0);e*t>this.chart.plotSizeY&&(t=this.chart.plotSizeY/e)}return t}hasData(){return!!this.dataTable.rowCount}pointAttribs(t,e){if(!t)return{};let o=this,i=t.isNode?t.level:t.fromNode.level,s=o.mapOptionsToLevel[i||0]||{},n=t.options,r=s.states&&s.states[e||""]||{},l=["colorByPoint","borderColor","borderWidth","linkOpacity","opacity"].reduce((t,e)=>(t[e]=ta(r[e],n[e],s[e],o.options[e]),t),{}),a=ta(r.color,n.color,l.colorByPoint?t.color:s.color);return t.isNode?{fill:a,stroke:l.borderColor,"stroke-width":l.borderWidth,opacity:l.opacity}:{fill:a,"fill-opacity":l.linkOpacity}}drawTracker(){Q.prototype.drawTracker.call(this,this.points),Q.prototype.drawTracker.call(this,this.nodes)}drawPoints(){Q.prototype.drawPoints.call(this,this.points),Q.prototype.drawPoints.call(this,this.nodes)}drawDataLabels(){Q.prototype.drawDataLabels.call(this,this.points),Q.prototype.drawDataLabels.call(this,this.nodes)}translate(){this.generatePoints(),this.nodeColumns=this.createNodeColumns();let t=this,e=this.chart,o=this.options,i=this.nodeColumns,s=i.length;for(let n of(this.nodeWidth=to(this,s),this.nodePadding=this.getNodePadding(),this.translationFactor=i.reduce((e,o)=>Math.min(e,o.sankeyColumn.getTranslationFactor(t)),1/0),this.colDistance=(e.plotSizeX-this.nodeWidth-o.borderWidth)/Math.max(1,i.length-1),t.mapOptionsToLevel=te({from:1,levels:o.levels,to:i.length-1,defaults:{borderColor:o.borderColor,borderRadius:o.borderRadius,borderWidth:o.borderWidth,color:t.color,colorByPoint:o.colorByPoint,levelIsConstant:!0,linkColor:o.linkColor,linkLineWidth:o.linkLineWidth,linkOpacity:o.linkOpacity,states:o.states}}),i))for(let e of n)t.translateNode(e,n);for(let e of this.nodes)for(let o of e.linksFrom)(o.weight||o.isNull)&&o.to&&(t.translateLink(o),o.allowShadow=!1)}translateLink(t){let e=(e,o)=>{let i=e.offset(t,o)*r;return Math.min(e.nodeY+i,e.nodeY+(e.shapeArgs&&e.shapeArgs.height||0)-u)},o=t.fromNode,i=t.toNode,s=this.chart,{inverted:n}=s,r=this.translationFactor,l=this.options,a=ta(t.linkColorMode,l.linkColorMode),h=(s.inverted?-this.colDistance:this.colDistance)*l.curveFactor,d=o.nodeX,p=i.nodeX,c=t.outgoing,u=Math.max(t.weight*r,this.options.minLinkWidth),f=e(o,"linksFrom"),m=e(i,"linksTo"),g=this.nodeWidth,y=p>d+g;if(s.inverted&&(f=s.plotSizeY-f,m=(s.plotSizeY||0)-m,g=-g,u=-u,y=d>p),t.shapeType="path",t.linkBase=[f,f+u,m,m+u],y&&"number"==typeof m)t.shapeArgs={d:[["M",d+g,f],["C",d+g+h,f,p-h,m,p,m],["L",p+(c?g:0),m+u/2],["L",p,m+u],["C",p-h,m+u,d+g+h,f+u,d+g,f+u],["Z"]]};else if("number"==typeof m){let e=s.plotHeight-f-u,o=p-20-u,i=p-20,n=d+g,r=n+20,l=r+u,a=f,h=f+u,c=h+20,y=c+e,x=y+20,b=x+u,v=m,k=v+u,C=k+20,N=h-.7*u,P=x+.7*u,L=k-.7*u,S=p-.7*u,T=n+.7*u;t.shapeArgs={d:[["M",n,a],["C",T,a,l,N,l,c],["L",l,y],["C",l,P,T,b,n,b],["L",p,b],["C",S,b,o,P,o,y],["L",o,C],["C",o,L,S,v,p,v],["L",p,k],["C",i,k,i,k,i,C],["L",i,y],["C",i,x,i,x,p,x],["L",n,x],["C",r,x,r,x,r,y],["L",r,c],["C",r,h,r,h,n,h],["Z"]]}}if(t.dlBox={x:d+(p-d+g)/2,y:f+(m-f)/2,height:u,width:0},t.tooltipPos=s.inverted?[s.plotSizeY-t.dlBox.y-u/2,s.plotSizeX-t.dlBox.x]:[t.dlBox.x,t.dlBox.y+u/2],t.y=t.plotY=1,t.x=t.plotX=1,!t.options.color){if("from"===a)t.color=o.color;else if("to"===a)t.color=i.color;else if("gradient"===a){let e=tt(o.color).get(),s=tt(i.color).get();t.color={linearGradient:{x1:1,x2:0,y1:0,y2:0},stops:[[0,n?e:s],[1,n?s:e]]}}}}translateNode(t,e){let o=this.translationFactor,i=this.chart,s=this.options,{borderRadius:n,borderWidth:r=0}=s,l=t.getSum(),a=Math.max(Math.round(l*o),this.options.minLinkWidth),h=Math.round(this.nodeWidth),d=e.sankeyColumn.offset(t,o),p=ts(ta(d.absoluteTop,e.sankeyColumn.top(o)+d.relativeTop),r),c=ts(this.colDistance*t.column+r/2,r)+th(t.options[i.inverted?"offsetVertical":"offsetHorizontal"]||0,h),u=i.inverted?i.plotSizeX-c:c;if(t.sum=l,l){t.shapeType="roundedRect",t.nodeX=u,t.nodeY=p;let e=u,o=p,r=t.options.width||s.width||h,l=t.options.height||s.height||a,d=ti(th("object"==typeof n?n.radius:n||0,r),0,a/2);i.inverted&&(e=u-h,o=i.plotSizeY-p-a,r=t.options.height||s.height||h,l=t.options.width||s.width||a),t.dlOptions=tp.getDLOptions({level:this.mapOptionsToLevel[t.level],optionsPoint:t.options}),t.plotX=1,t.plotY=1,t.tooltipPos=i.inverted?[i.plotSizeY-o-l/2,i.plotSizeX-e-r/2]:[e+r/2,o+l/2],t.shapeArgs={x:e,y:o,width:r,height:l,r:d,display:t.hasShape()?"":"none"}}else t.dlOptions={enabled:!1}}}tp.defaultOptions=tl(Q.defaultOptions,{borderWidth:0,colorByPoint:!0,curveFactor:.33,dataLabels:{enabled:!0,backgroundColor:"none",crop:!1,nodeFormat:void 0,nodeFormatter:function(){return this.point.name},format:void 0,formatter:function(){},inside:!0},inactiveOtherPoints:!0,linkColorMode:"from",linkOpacity:.5,opacity:1,minLinkWidth:0,nodeAlignment:"center",nodeWidth:20,nodePadding:10,nodeDistance:30,showInLegend:!1,states:{hover:{linkOpacity:1,opacity:1},inactive:{linkOpacity:.1,opacity:.1,animation:{duration:50}}},tooltip:{followPointer:!0,headerFormat:'<span style="font-size: 0.8em">{series.name}</span><br/>',pointFormat:"{point.fromNode.name} → {point.toNode.name}: <b>{point.weight}</b><br/>",nodeFormat:"{point.name}: <b>{point.sum}</b><br/>"}}),C.compose(T,tp),tn(tp.prototype,{animate:U.prototype.animate,createNode:C.createNode,forceDL:!0,invertible:!0,isCartesian:!1,orderNodes:!0,noSharedTooltip:!0,pointArrayMap:["from","to","weight"],pointClass:T,searchPoint:c().noop}),f().registerSeriesType("sankey",tp);let tc=c();return d.default})());</script>
   <script>
-    const HATCHER_DATA = {"hatcher-08": [{"name": "shipment-78", "y": 57482.0}], "hatcher-02": [{"name": "shipment-1", "y": 17903.651192810867}], "hatcher-01": [{"name": "shipment-1", "y": 5062.348807189137}], "hatcher-03": [{"name": "shipment-70", "y": 8352.0}]};
-    const TRANSFER_STATS = {"batch:parent-pair-2": {"shipments": 1, "eggs_to_barn": 28505.82131420202, "chicks_to_barn": 22966.0, "first_inventory": "2025-01-30 05:50:06.878738", "share_pct": 25.9, "age_days": 27, "telep": "Kaba", "current_yield": 0.8056599999999999, "yield_benchmarks": {"telep_curve": [], "telep_count": 0, "others_curve": [[0.773872, 0.014348], [0.774804, 0.021298], [0.775737, 0.0313], [0.77667, 0.045541], [0.777603, 0.065603], [0.778535, 0.093561], [0.779468, 0.132107], [0.780401, 0.184678], [0.781334, 0.2556], [0.782266, 0.350238], [0.783199, 0.475142], [0.784132, 0.638176], [0.785064, 0.848622], [0.785997, 1.117237], [0.78693, 1.456241], [0.787863, 1.879224], [0.788795, 2.400936], [0.789728, 3.036965], [0.790661, 3.803261], [0.791594, 4.715518], [0.792526, 5.788416], [0.793459, 7.034726], [0.794392, 8.464312], [0.795325, 10.08308], [0.796257, 11.891915], [0.79719, 13.885689], [0.798123, 16.052406], [0.799056, 18.372569], [0.799988, 20.818848], [0.800921, 23.356113], [0.801854, 25.941882], [0.802787, 28.527221], [0.803719, 31.058072], [0.804652, 33.477004], [0.805585, 35.725287], [0.806518, 37.745216], [0.80745, 39.482548], [0.808383, 40.888905], [0.809316, 41.924012], [0.810249, 42.557612], [0.811181, 42.770933], [0.812114, 42.557612], [0.813047, 41.924012], [0.813979, 40.888905], [0.814912, 39.482548], [0.815845, 37.745216], [0.816778, 35.725287], [0.81771, 33.477004], [0.818643, 31.058072], [0.819576, 28.527221], [0.820509, 25.941882], [0.821441, 23.356113], [0.822374, 20.818848], [0.823307, 18.372569], [0.82424, 16.052406], [0.825172, 13.885689], [0.826105, 11.891915], [0.827038, 10.08308], [0.827971, 8.464312], [0.828903, 7.034726], [0.829836, 5.788416], [0.830769, 4.715518], [0.831702, 3.803261], [0.832634, 3.036965], [0.833567, 2.400936], [0.8345, 1.879224], [0.835433, 1.456241], [0.836365, 1.117237], [0.837298, 0.848622], [0.838231, 0.638176], [0.839163, 0.475142], [0.840096, 0.350238], [0.841029, 0.2556], [0.841962, 0.184678], [0.842894, 0.132107], [0.843827, 0.093561], [0.84476, 0.065603], [0.845693, 0.045541], [0.846625, 0.0313], [0.847558, 0.021298], [0.848491, 0.014348]], "others_count": 8, "current_yield": 0.8056599999999999, "current_loss": 0.19434000000000007, "telep_label": "Kaba"}}, "batch:parent-pair-11": {"shipments": 1, "eggs_to_barn": 10648.57904198488, "chicks_to_barn": 8352.0, "first_inventory": "2025-02-23 23:35:18.852501", "share_pct": 9.4, "age_days": 2, "telep": "Kaba", "current_yield": 0.78433, "yield_benchmarks": {"telep_curve": [], "telep_count": 0, "others_curve": [[0.768257, 0.013869], [0.769222, 0.020586], [0.770187, 0.030254], [0.771152, 0.044019], [0.772117, 0.06341], [0.773082, 0.090434], [0.774047, 0.127692], [0.775012, 0.178506], [0.775977, 0.247058], [0.776942, 0.338534], [0.777907, 0.459264], [0.778872, 0.616849], [0.779837, 0.820262], [0.780802, 1.079901], [0.781767, 1.407576], [0.782731, 1.816423], [0.783696, 2.3207], [0.784661, 2.935474], [0.785626, 3.676161], [0.786591, 4.557932], [0.787556, 5.594976], [0.788521, 6.799636], [0.789486, 8.181447], [0.790451, 9.746118], [0.791416, 11.494504], [0.792381, 13.42165], [0.793346, 15.515958], [0.794311, 17.758585], [0.795276, 20.123113], [0.796241, 22.575586], [0.797206, 25.074942], [0.798171, 27.573883], [0.799136, 30.020157], [0.800101, 32.358251], [0.801066, 34.531399], [0.802031, 36.483826], [0.802996, 38.163098], [0.803961, 39.522457], [0.804926, 40.522973], [0.805891, 41.135399], [0.806856, 41.341591], [0.807821, 41.135399], [0.808786, 40.522973], [0.809751, 39.522457], [0.810716, 38.163098], [0.811681, 36.483826], [0.812646, 34.531399], [0.813611, 32.358251], [0.814576, 30.020157], [0.815541, 27.573883], [0.816506, 25.074942], [0.817471, 22.575586], [0.818436, 20.123113], [0.819401, 17.758585], [0.820366, 15.515958], [0.821331, 13.42165], [0.822296, 11.494504], [0.823261, 9.746118], [0.824226, 8.181447], [0.825191, 6.799636], [0.826156, 5.594976], [0.827121, 4.557932], [0.828086, 3.676161], [0.829051, 2.935474], [0.830016, 2.3207], [0.830981, 1.816423], [0.831946, 1.407576], [0.832911, 1.079901], [0.833876, 0.820262], [0.834841, 0.616849], [0.835806, 0.459264], [0.836771, 0.338534], [0.837736, 0.247058], [0.838701, 0.178506], [0.839666, 0.127692], [0.840631, 0.090434], [0.841596, 0.06341], [0.842561, 0.044019], [0.843526, 0.030254], [0.844491, 0.020586], [0.845456, 0.013869]], "others_count": 8, "current_yield": 0.78433, "current_loss": 0.21567000000000003, "telep_label": "Kaba"}}, "batch:parent-pair-4": {"shipments": 1, "eggs_to_barn": 71439.04651827547, "chicks_to_barn": 57482.0, "first_inventory": "2025-02-25 05:01:21.600715", "share_pct": 64.7, "age_days": 1, "telep": "Kaba", "current_yield": 0.8046300000000001, "yield_benchmarks": {"telep_curve": [], "telep_count": 1, "others_curve": [[0.770749, 0.013756], [0.771722, 0.020419], [0.772695, 0.030008], [0.773668, 0.043662], [0.774641, 0.062895], [0.775614, 0.0897], [0.776587, 0.126655], [0.777559, 0.177056], [0.778532, 0.245051], [0.779505, 0.335784], [0.780478, 0.455532], [0.781451, 0.611838], [0.782424, 0.813598], [0.783397, 1.071127], [0.78437, 1.39614], [0.785343, 1.801666], [0.786316, 2.301846], [0.787288, 2.911626], [0.788261, 3.646295], [0.789234, 4.520902], [0.790207, 5.54952], [0.79118, 6.744393], [0.792153, 8.114978], [0.793126, 9.666937], [0.794099, 11.401119], [0.795072, 13.312608], [0.796044, 15.389901], [0.797017, 17.614308], [0.79799, 19.959626], [0.798963, 22.392174], [0.799936, 24.871225], [0.800909, 27.349863], [0.801882, 29.776263], [0.802855, 32.095362], [0.803828, 34.250855], [0.804801, 36.187419], [0.805773, 37.853049], [0.806746, 39.201363], [0.807719, 40.193751], [0.808692, 40.801201], [0.809665, 41.005718], [0.810638, 40.801201], [0.811611, 40.193751], [0.812584, 39.201363], [0.813557, 37.853049], [0.814529, 36.187419], [0.815502, 34.250855], [0.816475, 32.095362], [0.817448, 29.776263], [0.818421, 27.349863], [0.819394, 24.871225], [0.820367, 22.392174], [0.82134, 19.959626], [0.822313, 17.614308], [0.823286, 15.389901], [0.824258, 13.312608], [0.825231, 11.401119], [0.826204, 9.666937], [0.827177, 8.114978], [0.82815, 6.744393], [0.829123, 5.54952], [0.830096, 4.520902], [0.831069, 3.646295], [0.832042, 2.911626], [0.833014, 2.301846], [0.833987, 1.801666], [0.83496, 1.39614], [0.835933, 1.071127], [0.836906, 0.813598], [0.837879, 0.611838], [0.838852, 0.455532], [0.839825, 0.335784], [0.840798, 0.245051], [0.841771, 0.177056], [0.842743, 0.126655], [0.843716, 0.0897], [0.844689, 0.062895], [0.845662, 0.043662], [0.846635, 0.030008], [0.847608, 0.020419], [0.848581, 0.013756]], "others_count": 8, "current_yield": 0.8046300000000001, "current_loss": 0.19536999999999993, "telep_label": "Kaba"}}};
+    const HATCHER_DATA = {"hatcher-21": [{"name": "shipment-41", "y": 32193.999999999996}], "hatcher-26": [{"name": "shipment-51", "y": 19381.999999999996}], "hatcher-08": [{"name": "shipment-14", "y": 2623.9999999999995}]};
+    const HATCHER_YIELDS = {"hatcher-21": 0.793571, "hatcher-26": 0.799771, "hatcher-08": 0.811771};
+    const TRANSFER_STATS = {"batch:parent-pair-15": {"shipments": 1, "eggs_to_barn": 3232.4369984513587, "chicks_to_barn": 2624.0, "first_inventory": "2025-01-31 15:43:35.904356", "hatcher_mix": {"hatcher-08": 2623.9999999999995}, "share_pct": 4.8, "age_days": 30, "telep": "Kaba", "current_yield": 0.8117714285714286, "yield_benchmarks": {"telep_curve": [], "telep_count": 0, "others_curve": [[0.762622, 0.010939], [0.763846, 0.016237], [0.765069, 0.023862], [0.766293, 0.034719], [0.767516, 0.050013], [0.76874, 0.071328], [0.769963, 0.100715], [0.771187, 0.140793], [0.77241, 0.194862], [0.773634, 0.267012], [0.774857, 0.362235], [0.776081, 0.486527], [0.777304, 0.646965], [0.778528, 0.85175], [0.779751, 1.110197], [0.780975, 1.432667], [0.782198, 1.830405], [0.783422, 2.315296], [0.784645, 2.899498], [0.785868, 3.594976], [0.787092, 4.412924], [0.788315, 5.363075], [0.789539, 6.45295], [0.790762, 7.687053], [0.791986, 9.066057], [0.793209, 10.586054], [0.794433, 12.237897], [0.795656, 14.006723], [0.79688, 15.871697], [0.798103, 17.806035], [0.799327, 19.777352], [0.80055, 21.74834], [0.801774, 23.677789], [0.802997, 25.521914], [0.804221, 27.235941], [0.805444, 28.775877], [0.806668, 30.10037], [0.807891, 31.172536], [0.809114, 31.961672], [0.810338, 32.444711], [0.811561, 32.607341], [0.812785, 32.444711], [0.814008, 31.961672], [0.815232, 31.172536], [0.816455, 30.10037], [0.817679, 28.775877], [0.818902, 27.235941], [0.820126, 25.521914], [0.821349, 23.677789], [0.822573, 21.74834], [0.823796, 19.777352], [0.82502, 17.806035], [0.826243, 15.871697], [0.827467, 14.006723], [0.82869, 12.237897], [0.829914, 10.586054], [0.831137, 9.066057], [0.83236, 7.687053], [0.833584, 6.45295], [0.834807, 5.363075], [0.836031, 4.412924], [0.837254, 3.594976], [0.838478, 2.899498], [0.839701, 2.315296], [0.840925, 1.830405], [0.842148, 1.432667], [0.843372, 1.110197], [0.844595, 0.85175], [0.845819, 0.646965], [0.847042, 0.486527], [0.848266, 0.362235], [0.849489, 0.267012], [0.850713, 0.194862], [0.851936, 0.140793], [0.85316, 0.100715], [0.854383, 0.071328], [0.855606, 0.050013], [0.85683, 0.034719], [0.858053, 0.023862], [0.859277, 0.016237], [0.8605, 0.010939]], "others_count": 10, "current_yield": 0.8117714285714286, "current_loss": 0.1882285714285714, "telep_label": "Kaba"}}, "batch:parent-pair-12": {"shipments": 1, "eggs_to_barn": 40568.49684968497, "chicks_to_barn": 32194.0, "first_inventory": "2025-03-01 06:49:05.264817", "hatcher_mix": {"hatcher-21": 32193.999999999996}, "share_pct": 59.4, "age_days": 1, "telep": "Kaba", "current_yield": 0.7935714285714286, "yield_benchmarks": {"telep_curve": [], "telep_count": 0, "others_curve": [[0.75736, 0.010316], [0.758657, 0.015314], [0.759955, 0.022505], [0.761252, 0.032745], [0.762549, 0.047169], [0.763846, 0.067272], [0.765144, 0.094987], [0.766441, 0.132786], [0.767738, 0.18378], [0.769035, 0.251827], [0.770333, 0.341634], [0.77163, 0.458858], [0.772927, 0.610172], [0.774224, 0.80331], [0.775522, 1.047059], [0.776819, 1.351189], [0.778116, 1.726308], [0.779413, 2.183622], [0.780711, 2.7346], [0.782008, 3.390526], [0.783305, 4.161956], [0.784602, 5.058071], [0.7859, 6.085964], [0.787197, 7.249882], [0.788494, 8.550461], [0.789791, 9.984014], [0.791089, 11.541915], [0.792386, 13.210146], [0.793683, 14.969057], [0.79498, 16.793387], [0.796278, 18.652593], [0.797575, 20.511489], [0.798872, 22.331209], [0.800169, 24.070456], [0.801467, 25.687004], [0.802764, 27.139363], [0.804061, 28.38853], [0.805358, 29.399721], [0.806656, 30.143979], [0.807953, 30.599547], [0.80925, 30.752927], [0.810547, 30.599547], [0.811844, 30.143979], [0.813142, 29.399721], [0.814439, 28.38853], [0.815736, 27.139363], [0.817033, 25.687004], [0.818331, 24.070456], [0.819628, 22.331209], [0.820925, 20.511489], [0.822222, 18.652593], [0.82352, 16.793387], [0.824817, 14.969057], [0.826114, 13.210146], [0.827411, 11.541915], [0.828709, 9.984014], [0.830006, 8.550461], [0.831303, 7.249882], [0.8326, 6.085964], [0.833898, 5.058071], [0.835195, 4.161956], [0.836492, 3.390526], [0.837789, 2.7346], [0.839087, 2.183622], [0.840384, 1.726308], [0.841681, 1.351189], [0.842978, 1.047059], [0.844276, 0.80331], [0.845573, 0.610172], [0.84687, 0.458858], [0.848167, 0.341634], [0.849465, 0.251827], [0.850762, 0.18378], [0.852059, 0.132786], [0.853356, 0.094987], [0.854654, 0.067272], [0.855951, 0.047169], [0.857248, 0.032745], [0.858545, 0.022505], [0.859843, 0.015314], [0.86114, 0.010316]], "others_count": 12, "current_yield": 0.7935714285714286, "current_loss": 0.2064285714285714, "telep_label": "Kaba"}}, "batch:parent-pair-7": {"shipments": 1, "eggs_to_barn": 24234.424121177482, "chicks_to_barn": 19382.0, "first_inventory": "2025-03-01 10:17:27.599237", "hatcher_mix": {"hatcher-26": 19381.999999999996}, "share_pct": 35.8, "age_days": 1, "telep": "Kaba", "current_yield": 0.7997714285714285, "yield_benchmarks": {"telep_curve": [], "telep_count": 1, "others_curve": [[0.761309, 0.011812], [0.762442, 0.017534], [0.763575, 0.025768], [0.764708, 0.037492], [0.765841, 0.054008], [0.766974, 0.077026], [0.768107, 0.108759], [0.76924, 0.152039], [0.770373, 0.210427], [0.771506, 0.288339], [0.772639, 0.391168], [0.773772, 0.525388], [0.774905, 0.698641], [0.776038, 0.919783], [0.777171, 1.198873], [0.778304, 1.5471], [0.779437, 1.976608], [0.78057, 2.500229], [0.781703, 3.131093], [0.782836, 3.882123], [0.783969, 4.765404], [0.785102, 5.791447], [0.786235, 6.968376], [0.787368, 8.301052], [0.788501, 9.790203], [0.789634, 11.431609], [0.790767, 13.215392], [0.7919, 15.125503], [0.793033, 17.13944], [0.794166, 19.228282], [0.795299, 21.357057], [0.796432, 23.485477], [0.797565, 25.56904], [0.798698, 27.560463], [0.799831, 29.411396], [0.800964, 31.074335], [0.802097, 32.50462], [0.80323, 33.662425], [0.804363, 34.514593], [0.805496, 35.036215], [0.806629, 35.211835], [0.807762, 35.036215], [0.808895, 34.514593], [0.810028, 33.662425], [0.81116, 32.50462], [0.812293, 31.074335], [0.813426, 29.411396], [0.814559, 27.560463], [0.815692, 25.56904], [0.816825, 23.485477], [0.817958, 21.357057], [0.819091, 19.228282], [0.820224, 17.13944], [0.821357, 15.125503], [0.82249, 13.215392], [0.823623, 11.431609], [0.824756, 9.790203], [0.825889, 8.301052], [0.827022, 6.968376], [0.828155, 5.791447], [0.829288, 4.765404], [0.830421, 3.882123], [0.831554, 3.131093], [0.832687, 2.500229], [0.83382, 1.976608], [0.834953, 1.5471], [0.836086, 1.198873], [0.837219, 0.919783], [0.838352, 0.698641], [0.839485, 0.525388], [0.840618, 0.391168], [0.841751, 0.288339], [0.842884, 0.210427], [0.844017, 0.152039], [0.84515, 0.108759], [0.846283, 0.077026], [0.847416, 0.054008], [0.848549, 0.037492], [0.849682, 0.025768], [0.850815, 0.017534], [0.851948, 0.011812]], "others_count": 12, "current_yield": 0.7997714285714285, "current_loss": 0.20022857142857153, "telep_label": "Kaba"}}};
     const pop = document.getElementById('popover');
     const titleEl = document.getElementById('modal-title');
-    const elTemp = document.getElementById('chart-temp');
-    const elHum = document.getElementById('chart-hum');
-    const elCO2 = document.getElementById('chart-co2');
+    const elEnv = document.getElementById('chart-env');
+    const elHistory = document.getElementById('chart-history');
     const chartsWrap = document.getElementById('charts');
     const statsWrap = document.getElementById('stats');
     const benchWrap = document.getElementById('benchmark');
+    const factorWrap = document.getElementById('factor');
     const svgEl = document.querySelector('svg');
 
     // Nice, readable palette per metric
@@ -159,7 +151,7 @@
 
     // Time helpers
     const NOW = ()=>Date.now();
-    const TICK = 30*60*1000; // 30 minutes
+    const TICK = 60*1000; // 1 minute sampling
 
     // Low-pass filtered noise (for temp/humidity)
     function lpfNoise(len, base, jitter){
@@ -173,7 +165,7 @@
     }
 
     // Metric generators aiming for more realistic shapes
-    function genTemp(isSetter, points=48){
+    function genTemp(isSetter, points=720){
       const [min,max] = isSetter ? [37.5,38.0] : [36.8,37.2];
       const target = (min+max)/2;
       const noise = lpfNoise(points, 0, 0.06);
@@ -190,7 +182,7 @@
       return out;
     }
 
-    function genHum(isSetter, points=48){
+    function genHum(isSetter, points=720){
       const [min,max] = isSetter ? [50,55] : [65,75];
       const base = (min+max)/2;
       const out=[]; const now=NOW();
@@ -207,7 +199,7 @@
       return out;
     }
 
-    function genCO2(points=48){
+    function genCO2(points=720){
       // sawtooth cycles: build-up then ventilation dump
       const out=[]; const now=NOW();
       let level = 0.25; // %
@@ -220,43 +212,319 @@
       return out;
     }
 
-    function genAir(points=48){
-      // step-like fan speeds with small noise
-      const steps=[1.1,1.3,1.6,1.8,1.4,1.2];
-      const out=[]; const now=NOW();
-      for(let i=points-1;i>=0;i--){
-        const t = now - i*TICK;
-        const s = steps[Math.floor(i/8)%steps.length];
-        const v = s + (Math.random()-0.5)*0.07;
-        out.push([t, Number(v.toFixed(2))]);
-      }
-      return out;
+    const historyCache = new Map();
+
+    function gradientFill(color, strength=0.32){
+      return {
+        linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+        stops: [
+          [0, Highcharts.color(color).setOpacity(strength).get('rgba')],
+          [1, Highcharts.color(color).setOpacity(strength * 0.08).get('rgba')]
+        ]
+      };
     }
 
-    function genTurn(points=48){
-      // spikes at turning events per 24h (every 1–2h)
-      const out=[]; const now=NOW();
-      let next = Math.floor(Math.random()*3)+1; // index of next spike
-      for(let i=points-1;i>=0;i--){
-        const t = now - i*TICK;
-        const spike = (i%next===0) ? (10 + Math.random()*20) : (Math.random()*2);
-        out.push([t, Number(spike.toFixed(1))]);
-        if(i%next===0){ next = Math.floor(Math.random()*4)+2; }
-      }
-      return out;
+    function renderEnvironmentChart(container, isSetter){
+      const temp = genTemp(isSetter);
+      const hum  = genHum(isSetter);
+      const co2  = genCO2();
+      Highcharts.chart(container, {
+        chart: { backgroundColor: 'transparent', zooming: { type: 'x' } },
+        title: { text: (isSetter ? 'Előkeltető' : 'Utókeltető') + ' környezeti profil', style: { color: '#e6f0ff' } },
+        subtitle: { text: (document.ontouchstart === undefined ? 'Húzd az egeret az időbeli nagyításhoz' : 'Nagyításhoz csípd össze'), style:{ color:'#9aa4b2' } },
+        xAxis: { type: 'datetime', labels: { style: { color: '#c8cfdb' } }, lineColor:'#223' },
+        yAxis: [{
+          title: { text: 'Hőmérséklet (°C)', style: { color: COLORS.temp } },
+          labels: { style: { color: COLORS.temp }, format: '{value}°C' },
+          gridLineColor: '#223'
+        }, {
+          title: { text: 'Relatív páratartalom (%)', style: { color: COLORS.hum } },
+          labels: { style: { color: COLORS.hum }, format: '{value}%' },
+          gridLineWidth: 0,
+          opposite: true
+        }, {
+          title: { text: 'CO₂ (%)', style: { color: COLORS.co2 } },
+          labels: { style: { color: COLORS.co2 }, format: '{value}%' },
+          gridLineWidth: 0,
+          min: 0.15,
+          max: 0.6,
+          opposite: true
+        }],
+        legend: { itemStyle: { color: '#e6f0ff' } },
+        tooltip: {
+          shared: true,
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          xDateFormat: '%H:%M'
+        },
+        plotOptions: {
+          areaspline: {
+            marker: { radius: 1.3 },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        series: [
+          { name: 'Hőmérséklet', type: 'areaspline', data: temp, color: COLORS.temp, yAxis: 0, fillColor: gradientFill(COLORS.temp), tooltip: { valueSuffix: ' °C' } },
+          { name: 'Relatív páratartalom', type: 'areaspline', data: hum, color: COLORS.hum, yAxis: 1, fillColor: gradientFill(COLORS.hum), tooltip: { valueSuffix: ' %' } },
+          { name: 'CO₂ koncentráció', type: 'areaspline', data: co2, color: COLORS.co2, yAxis: 2, fillColor: gradientFill(COLORS.co2, 0.28), tooltip: { valueSuffix: ' %' } },
+        ],
+        credits: { enabled: false }
+      });
     }
 
-    function genNoise(points=48){
-      const out=[]; const now=NOW();
-      let level = 52 + (Math.random()-0.5)*4;
-      for(let i=points-1;i>=0;i--){
-        const t = now - i*TICK;
-        level += (Math.random()-0.5)*1.5;
-        if(Math.random()<0.05) level += 6 + Math.random()*6; // occasional spike
-        const v = clamp(level, 45, 68);
-        out.push([t, Number(v.toFixed(1))]);
+    function buildNormalCurve(mean, std){
+      const points = [];
+      const span = 4 * std;
+      const start = mean - span;
+      const end = mean + span;
+      const factor = 1 / (std * Math.sqrt(2 * Math.PI));
+      const steps = 80;
+      for(let i=0;i<=steps;i++){
+        const x = start + (end - start) * (i / steps);
+        const clampedX = Math.max(0.0, Math.min(1.0, x));
+        const y = factor * Math.exp(-0.5 * Math.pow((x - mean) / std, 2));
+        points.push([Number((clampedX * 100).toFixed(2)), Number(y.toFixed(6))]);
       }
-      return out;
+      return points;
+    }
+
+    function getHistoryDataset(hatcherKey){
+      if(historyCache.has(hatcherKey)){
+        return historyCache.get(hatcherKey);
+      }
+      const baseMean = 0.80 + Math.random() * 0.08;
+      const selfStd = 0.015 + Math.random() * 0.01;
+      const siteMean = baseMean - 0.01 + (Math.random() - 0.5) * 0.02;
+      const siteStd = selfStd + 0.005 + Math.random() * 0.01;
+      const data = {
+        self: buildNormalCurve(baseMean, selfStd),
+        site: buildNormalCurve(siteMean, siteStd)
+      };
+      historyCache.set(hatcherKey, data);
+      return data;
+    }
+
+    function renderHistoryChart(container, hatcherKey, currentYield){
+      const dataset = getHistoryDataset(hatcherKey);
+      const lines = [];
+      if (typeof currentYield === 'number' && !Number.isNaN(currentYield)) {
+        const value = Number((currentYield * 100).toFixed(2));
+        lines.push({
+          value,
+          color: '#00ddeb',
+          width: 2,
+          dashStyle: 'ShortDash',
+          label: { text: 'Aktuális', style: { color: '#00ddeb' }, align: 'left', x: 6 }
+        });
+      }
+      Highcharts.chart(container, {
+        chart: { backgroundColor: 'transparent' },
+        title: { text: 'Historikus kihozatal eloszlás', style: { color: '#e6f0ff' } },
+        xAxis: {
+          title: { text: 'Kihozatal %', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' }, format: '{value}%' },
+          min: 60,
+          max: 100,
+          gridLineColor: '#223',
+          plotLines: lines
+        },
+        yAxis: {
+          title: { text: 'Sűrűség', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' } },
+          gridLineColor: '#223'
+        },
+        legend: { itemStyle: { color: '#e6f0ff' } },
+        tooltip: {
+          shared: true,
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          pointFormatter: function(){
+            return '<span style="color:' + this.color + '">●</span> ' + this.series.name + ': <b>' + this.x.toFixed(1) + '%</b><br/>';
+          }
+        },
+        plotOptions: {
+          areaspline: {
+            marker: { enabled: false },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        series: [
+          { name: 'Adott telep', type: 'areaspline', data: dataset.self, color: '#5b8def', fillColor: gradientFill('#5b8def', 0.28) },
+          { name: 'Többi telep', type: 'areaspline', data: dataset.site, color: '#ffa552', fillColor: gradientFill('#ffa552', 0.24) }
+        ],
+        credits: { enabled: false }
+      });
+    }
+
+    function renderBenchmarkChart(container, bench, currentYield){
+      let telepSeries = (bench.telep_curve || []).map(([x, y]) => [x * 100, y]);
+      let othersSeries = (bench.others_curve || []).map(([x, y]) => [x * 100, y]);
+
+      const fallbackMean = (typeof currentYield === 'number' && !Number.isNaN(currentYield)) ? currentYield : 0.82;
+      const fallbackStd = 0.018;
+
+      if (!telepSeries.length) {
+        telepSeries = buildNormalCurve(fallbackMean, fallbackStd);
+      }
+      if (!othersSeries.length) {
+        const shiftedMean = Math.max(0.6, Math.min(0.98, fallbackMean - 0.015));
+        othersSeries = buildNormalCurve(shiftedMean, fallbackStd * 1.2);
+      }
+
+      telepSeries = telepSeries.map(([x, y]) => [Math.max(0, Math.min(100, x)), Number(y.toFixed(6))]);
+      othersSeries = othersSeries.map(([x, y]) => [Math.max(0, Math.min(100, x)), Number(y.toFixed(6))]);
+
+      const series = [
+        { name: 'Adott telep' + (bench.telep_count ? ' (' + bench.telep_count + ')' : ''), type: 'areaspline', data: telepSeries, color: '#5b8def', fillColor: gradientFill('#5b8def', 0.3) },
+        { name: 'Többi telep' + (bench.others_count ? ' (' + bench.others_count + ')' : ''), type: 'areaspline', data: othersSeries, color: '#ffa552', fillColor: gradientFill('#ffa552', 0.22) }
+      ];
+      const currentLine = currentYield !== null ? currentYield * 100 : null;
+      const lossLine = currentYield !== null ? (1 - currentYield) * 100 : null;
+      Highcharts.chart(container, {
+        chart: { backgroundColor: 'transparent' },
+        title: { text: 'Batch kihozatal historikus viszonyban', style: { color: '#e6f0ff' } },
+        xAxis: {
+          title: { text: 'Kihozatal %', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' }, format: '{value}%' },
+          plotLines: [
+            ...(currentLine !== null ? [{ value: currentLine, color: '#ffffff', width: 2, dashStyle: 'ShortDash', label: { text: 'Aktuális', style: { color: '#ffffff' }, align: 'left', x: 6 } }] : []),
+            ...(lossLine !== null ? [{ value: lossLine, color: '#ff4d8d', width: 1.5, dashStyle: 'Dot', label: { text: 'Elhullás', style: { color: '#ff7ab6' }, align: 'right', x: -8 } }] : []),
+          ]
+        },
+        yAxis: { title: { text: 'Sűrűség', style: { color: '#c8cfdb' } }, labels: { style: { color: '#c8cfdb' } }, gridLineColor: '#223' },
+        legend: { itemStyle: { color: '#e6f0ff' } },
+        tooltip: {
+          shared: true,
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          pointFormatter: function(){
+            return '<span style="color:' + this.color + '">●</span> ' + this.series.name + ': <b>' + this.x.toFixed(2) + '%</b><br/>';
+          }
+        },
+        plotOptions: {
+          areaspline: {
+            marker: { enabled: false },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        credits: { enabled: false },
+        series
+      });
+    }
+
+    function formatHatcherName(machine){
+      if (!machine) return 'Ismeretlen';
+      if (machine === 'hatcher-other') return 'Egyéb utókeltetők';
+      const parts = machine.split('-');
+      const suffix = parts[parts.length - 1];
+      const num = parseInt(suffix, 10);
+      if (!Number.isNaN(num)) {
+        return 'Utókeltető ' + String(num).padStart(2, '0');
+      }
+      return 'Utókeltető ' + suffix.toUpperCase();
+    }
+
+    function seededImpact(source, key){
+      let hash = 0;
+      const str = source + ':' + key;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash * 131 + str.charCodeAt(i)) >>> 0;
+      }
+      return ((hash % 2001) / 1000) - 1.0; // [-1, 1]
+    }
+
+    function renderFactorChart(container, mix){
+      const entries = Object.entries(mix).map(([machine, qty]) => ({ machine, qty: Number(qty) || 0 })).filter(item => item.qty > 0);
+      if (!entries.length) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+      const total = entries.reduce((acc, item) => acc + item.qty, 0);
+      if (total <= 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+
+      const FACTORS = [
+        { key: 'co2', name: 'CO₂ kontroll', color: COLORS.co2 },
+        { key: 'temp', name: 'Hőmérséklet', color: COLORS.temp },
+        { key: 'telep', name: 'Tenyésztelep logisztika', color: '#7bd389' },
+        { key: 'parent', name: 'Szülőpár kora', color: '#ff7ab6', constant: 0.6 }
+      ];
+
+      const contributions = FACTORS.map(factor => ({
+        name: factor.name,
+        key: factor.key,
+        color: factor.color,
+        value: 0
+      }));
+
+      entries.forEach(entry => {
+        const weight = entry.qty / total;
+        FACTORS.forEach((factor, idx) => {
+          let raw = factor.constant ?? seededImpact(entry.machine, factor.key);
+          contributions[idx].value += raw * weight;
+        });
+      });
+
+      const scaled = contributions
+        .map(item => ({
+          name: item.name,
+          color: item.color,
+          value: Number((item.value * 12).toFixed(2))
+        }))
+        .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+      const categories = scaled.map(item => item.name);
+      const data = scaled.map(item => ({ y: item.value, color: item.color }));
+
+      Highcharts.chart(container, {
+        chart: { type: 'bar', backgroundColor: 'transparent' },
+        title: { text: 'Keltetői tényezők SHAP értékei', style: { color: '#e6f0ff' } },
+        xAxis: {
+          title: { text: 'SHAP (százalékpont)', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' } },
+          gridLineColor: '#223',
+          plotLines: [{ value: 0, color: '#2a3450', width: 1 }]
+        },
+        yAxis: {
+          categories,
+          title: { text: null },
+          labels: { style: { color: '#c8cfdb' } },
+          gridLineColor: '#223',
+          reversed: true
+        },
+        legend: { enabled: false },
+        tooltip: {
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          pointFormatter: function(){
+            const sign = this.y >= 0 ? '+' : '';
+            return '<span style="color:' + this.color + '">■</span> ' + this.point.category + ': <b>' + sign + this.y.toFixed(2) + '</b> p.p.';
+          }
+        },
+        plotOptions: {
+          series: {
+            borderWidth: 0,
+            dataLabels: {
+              enabled: true,
+              format: '{y:+.2f}',
+              style: { color: '#e6f0ff', textOutline: 'none', fontSize: '11px' }
+            }
+          }
+        },
+        credits: { enabled: false },
+        series: [{ name: 'Hatás', data }]
+      });
     }
     svgEl.addEventListener('click', (e) => {{
       const target = e.target.closest('.hotspot');
@@ -280,6 +548,8 @@
       if (isTransfer) {
         chartsWrap.style.display = 'none';
         statsWrap.style.display = 'block';
+        factorWrap.style.display = 'none';
+        factorWrap.innerHTML = '';
         const st = TRANSFER_STATS[key] || null;
         if (!st) {
           statsWrap.innerHTML = '<div>Nincs adat ehhez a szülőpárhoz.</div>';
@@ -302,93 +572,46 @@
           + '<div><div style="opacity:.7">Batch kora</div><div style="font-size:20px">' + ageText + '</div></div>'
           + '</div>';
         statsWrap.innerHTML = statsHtml;
+
+        const mix = st.hatcher_mix || {};
+        if (mix && Object.keys(mix).length) {
+          factorWrap.style.display = 'block';
+          factorWrap.innerHTML = '';
+          renderFactorChart(factorWrap, mix);
+        } else {
+          factorWrap.style.display = 'none';
+          factorWrap.innerHTML = '';
+        }
+
         const bench = st.yield_benchmarks || null;
         if (bench && ((Array.isArray(bench.telep_curve) && bench.telep_curve.length) || (Array.isArray(bench.others_curve) && bench.others_curve.length))) {
           benchWrap.style.display = 'block';
           benchWrap.innerHTML = '';
-          const telepSeries = (bench.telep_curve || []).map(([x, y]) => [x * 100, y]);
-          const othersSeries = (bench.others_curve || []).map(([x, y]) => [x * 100, y]);
-          const series = [];
-          if (telepSeries.length) {
-            series.push({ name: 'Saját telep (' + bench.telep_count + ')', data: telepSeries, type: 'line', color: '#5b8def', lineWidth: 2 });
-          }
-          if (othersSeries.length) {
-            series.push({ name: 'Más telepek (' + bench.others_count + ')', data: othersSeries, type: 'line', color: '#ffa552', lineWidth: 2, dashStyle: 'ShortDash' });
-          }
-          const currentLine = currentYield !== null ? currentYield * 100 : null;
-          const lossLine = currentYield !== null ? (1 - currentYield) * 100 : null;
-          Highcharts.chart(benchWrap, {
-            chart: { backgroundColor: 'transparent' },
-            title: { text: 'Batch kihozatal historikus viszonyban', style: { color: '#e6f0ff' } },
-            xAxis: {
-              title: { text: 'Kihozatal %', style: { color: '#c8cfdb' } },
-              labels: { style: { color: '#c8cfdb' }, format: '{value}%' },
-              plotLines: [
-                ...(currentLine !== null ? [{ value: currentLine, color: '#ffffff', width: 2, dashStyle: 'ShortDash', label: { text: 'Aktuális', style: { color: '#ffffff' }, rotation: 0, align: 'left', x: 6 } }] : []),
-                ...(lossLine !== null ? [{ value: lossLine, color: '#ff4d8d', width: 1.5, dashStyle: 'Dot', label: { text: 'Elhullás', style: { color: '#ff7ab6' }, rotation: 0, align: 'right', x: -6 } }] : []),
-              ],
-            },
-            yAxis: { title: { text: 'Sűrűség', style: { color: '#c8cfdb' } }, labels: { style: { color: '#c8cfdb' } }, gridLineColor: '#223' },
-            legend: { itemStyle: { color: '#e6f0ff' } },
-            tooltip: {
-              shared: true,
-              backgroundColor: '#0f1a2e',
-              borderColor: '#2a3450',
-              style: { color: '#e6f0ff' },
-              valueDecimals: 2,
-              pointFormatter: function () {
-                return '<span style="color:' + this.color + '">●</span> ' + this.series.name + ': <b>' + this.x.toFixed(2) + '%</b><br/>';
-              }
-            },
-            credits: { enabled: false },
-            series
-          });
+          renderBenchmarkChart(benchWrap, bench, currentYield);
         } else {
           benchWrap.style.display = 'none';
           benchWrap.innerHTML = '';
         }
         return;
-      } else {
-        chartsWrap.style.display='grid';
-        statsWrap.style.display='none';
-        benchWrap.style.display = 'none';
-        benchWrap.innerHTML = '';
       }
-      // Generate metric-specific series and render with nicer colors
-      const temp = genTemp(isSetter);
-      const hum  = genHum(isSetter);
-      const co2  = genCO2();
-      const opts = (name, data, unit, color) => ({
-        chart: {
-          backgroundColor: 'transparent',
-          zooming: { type: 'x' }
-        },
-        title: { text: name, style: { color: '#e6f0ff' } },
-        subtitle: { text: (document.ontouchstart === undefined ? 'Click and drag to zoom in' : 'Pinch to zoom in'), style:{ color:'#9aa4b2' } },
-        xAxis: { type: 'datetime', labels: { style: { color: '#c8cfdb' } } },
-        yAxis: { title: { text: unit, style:{color:'#c8cfdb'} }, gridLineColor: '#223' },
-        legend: { enabled: false },
-        tooltip: { backgroundColor:'#0f1a2e', borderColor:'#2a3450', style:{color:'#e6f0ff'}, pointFormat:'<b>{{point.y}}</b> '+unit },
-        plotOptions: {
-          area: {
-            fillColor: {
-              linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-              stops: [
-                [0, Highcharts.color(color).setOpacity(0.25).get('rgba')],
-                [1, Highcharts.color(color).setOpacity(0.03).get('rgba')]
-              ]
-            },
-            marker: { radius: 2 },
-            lineWidth: 2,
-            threshold: null
-          }
-        },
-        series: [{ type:'area', name, data, color }],
-        credits: { enabled: false }
-      });
-      Highcharts.chart(elTemp, opts('Hőmérséklet', temp, '°C', COLORS.temp));
-      Highcharts.chart(elHum,  opts('Relatív páratartalom', hum, '%', COLORS.hum));
-      Highcharts.chart(elCO2,  opts('CO₂ koncentráció', co2, '%', COLORS.co2));
+
+      chartsWrap.style.display='grid';
+      statsWrap.style.display='none';
+      benchWrap.style.display = 'none';
+      benchWrap.innerHTML = '';
+      factorWrap.style.display = 'none';
+      factorWrap.innerHTML = '';
+
+      renderEnvironmentChart(elEnv, isSetter);
+      const isHatcher = key.startsWith('hatcher-');
+      if (isHatcher) {
+        elHistory.style.display = 'block';
+        const actualYield = typeof HATCHER_YIELDS[key] === 'number' ? HATCHER_YIELDS[key] : null;
+        renderHistoryChart(elHistory, key, actualYield);
+      } else {
+        elHistory.style.display = 'none';
+        elHistory.innerHTML = '';
+      }
     }});
     document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') pop.style.display = 'none'; });
   </script>

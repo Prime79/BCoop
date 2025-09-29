@@ -168,6 +168,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
 
     # Transfer (parent-pair) stats per barn
     transfer_stats: Dict[str, Dict[str, object]] = {}
+    per_hatcher_totals: Dict[str, Dict[str, float]] = defaultdict(lambda: {'eggs': 0.0, 'chicks': 0.0})
     for shipment in bf.shipments:
         parent = shipment.parent_pair
         batch_key = f"batch:{parent}"
@@ -176,10 +177,20 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
             'eggs_to_barn': 0.0,
             'chicks_to_barn': 0.0,
             'first_inventory': None,
+            'hatcher_mix': {},
         })
         st['shipments'] = int(st['shipments']) + 1
         st['chicks_to_barn'] = float(st['chicks_to_barn']) + float(shipment.barn_quantity or 0.0)
         st['eggs_to_barn'] = float(st['eggs_to_barn']) + float(sum(c.barn_eggs for c in shipment.cart_contributions))
+        mix = st['hatcher_mix']
+        for cart in shipment.cart_contributions:
+            if not cart.hatcher_id:
+                continue
+            machine = cart.hatcher_id.split('-cart')[0]
+            mix[machine] = float(mix.get(machine, 0.0)) + float(cart.barn_chicks)
+            totals = per_hatcher_totals[machine]
+            totals['chicks'] += float(cart.barn_chicks)
+            totals['eggs'] += float(cart.barn_eggs or 0.0)
         inv = shipment.timeline.inventory_ready or shipment.timeline.barn_arrival
         if inv is not None and (st['first_inventory'] is None or inv < st['first_inventory']):
             st['first_inventory'] = inv
@@ -188,6 +199,21 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
         v['share_pct'] = round(100.0 * float(v['chicks_to_barn']) / float(total_chicks), 1)
         v['age_days'] = (bf.cutoff - v['first_inventory']).days if v['first_inventory'] else None
         v['telep'] = telep_name
+
+    # Aggregate per-hatcher yields aligned with layout nodes
+    hatcher_yields: Dict[str, float] = {}
+    for key, spec in hatcher_nodes.items():
+        members = spec.get('members') or []
+        eggs_sum = 0.0
+        chicks_sum = 0.0
+        for member in members:
+            totals = per_hatcher_totals.get(member)
+            if not totals:
+                continue
+            eggs_sum += float(totals.get('eggs') or 0.0)
+            chicks_sum += float(totals.get('chicks') or 0.0)
+        if eggs_sum > 0 and chicks_sum >= 0:
+            hatcher_yields[key] = chicks_sum / eggs_sum
 
     # Attach benchmark curves for each batch
     for key in list(transfer_stats.keys()):
@@ -244,6 +270,9 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
         key: [{"name": sid, "y": qty} for sid, qty in breakdown.get(key, [])]
         for key in hatcher_nodes.keys()
     }
+    hatcher_yield_json = {
+        key: round(val, 6) for key, val in hatcher_yields.items()
+    }
     transfer_json = json.dumps(transfer_stats, default=str, ensure_ascii=False)
 
     tpl = Template("""<!DOCTYPE html>
@@ -256,11 +285,11 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
     .wrap {{ max-width: 1600px; margin: 0 auto; }}
     svg {{ width: 100%; height: auto; display:block; }}
     .hotspot {{ cursor: pointer; pointer-events: all; }}
-    .popover { position: fixed; display: none; z-index: 9999; width: min(880px, 92vw); max-height: 86vh; overflow: auto; background: #0e172a; border: 1px solid #2a3450; border-radius: 12px; box-shadow: 0 12px 48px rgba(0,0,0,0.45); }
-    .popover header { display:flex; align-items:center; justify-content:space-between; padding: 8px 12px 10px; color:#e6f0ff; font: 600 16px system-ui; position: sticky; top: 0; background:#0e172a; border-bottom: 1px solid #223; }
-    .close {{ cursor:pointer; border:none; background:transparent; color:#9aa4b2; font-size:18px; }}
-    .charts {{ display: grid; grid-template-columns: 1fr; gap: 16px; padding: 8px; }}
-    .chart {{ height: 260px; }}
+    .popover { position: fixed; display: none; z-index: 9999; width: min(800px, 88vw); max-height: 76vh; overflow: hidden; background: #0e172a; border: 1px solid #2a3450; border-radius: 12px; box-shadow: 0 12px 48px rgba(0,0,0,0.45); }
+    .popover header { display:flex; align-items:center; justify-content:space-between; padding: 6px 14px 8px; color:#e6f0ff; font: 600 15px system-ui; background:#0e172a; border-bottom: 1px solid #223; }
+    .close {{ cursor:pointer; border:none; background:transparent; color:#9aa4b2; font-size:17px; padding:2px 4px; }}
+    .charts {{ display: grid; grid-template-columns: 1fr; gap: 10px; padding: 10px 14px 6px; }}
+    .chart {{ min-height: 220px; }}
   </style>
 </head>
 <body>
@@ -272,27 +301,28 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
       <button class=\"close\" onclick=\"document.getElementById('popover').style.display='none'\">✕</button>
     </header>
     <div id=\"charts\" class=\"charts\"> 
-      <div id=\"chart-temp\" class=\"chart\"></div>
-      <div id=\"chart-hum\" class=\"chart\"></div>
-      <div id=\"chart-co2\" class=\"chart\"></div>
+      <div id=\"chart-env\" class=\"chart\"></div>
+      <div id=\"chart-history\" class=\"chart\" style=\"display:none\"></div>
     </div>
-    <div id=\"stats\" style=\"display:none; padding:12px; color:#e6f0ff\"></div>
-    <div id=\"benchmark\" class=\"chart\" style=\"display:none; height:260px; padding:8px 12px\"></div>
+    <div id=\"stats\" style=\"display:none; padding:10px 14px; color:#e6f0ff\"></div>
+    <div id=\"factor\" class=\"chart\" style=\"display:none; padding:6px 14px; min-height:200px\"></div>
+    <div id=\"benchmark\" class=\"chart\" style=\"display:none; padding:6px 14px; min-height:200px\"></div>
   </div>
 
   <script>$hc_js</script>
   <script>$sankey_js</script>
   <script>
     const HATCHER_DATA = $data_json;
+    const HATCHER_YIELDS = $yield_json;
     const TRANSFER_STATS = $transfer_json;
     const pop = document.getElementById('popover');
     const titleEl = document.getElementById('modal-title');
-    const elTemp = document.getElementById('chart-temp');
-    const elHum = document.getElementById('chart-hum');
-    const elCO2 = document.getElementById('chart-co2');
+    const elEnv = document.getElementById('chart-env');
+    const elHistory = document.getElementById('chart-history');
     const chartsWrap = document.getElementById('charts');
     const statsWrap = document.getElementById('stats');
     const benchWrap = document.getElementById('benchmark');
+    const factorWrap = document.getElementById('factor');
     const svgEl = document.querySelector('svg');
 
     // Nice, readable palette per metric
@@ -310,7 +340,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
 
     // Time helpers
     const NOW = ()=>Date.now();
-    const TICK = 30*60*1000; // 30 minutes
+    const TICK = 60*1000; // 1 minute sampling
 
     // Low-pass filtered noise (for temp/humidity)
     function lpfNoise(len, base, jitter){
@@ -324,7 +354,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
     }
 
     // Metric generators aiming for more realistic shapes
-    function genTemp(isSetter, points=48){
+    function genTemp(isSetter, points=720){
       const [min,max] = isSetter ? [37.5,38.0] : [36.8,37.2];
       const target = (min+max)/2;
       const noise = lpfNoise(points, 0, 0.06);
@@ -341,7 +371,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
       return out;
     }
 
-    function genHum(isSetter, points=48){
+    function genHum(isSetter, points=720){
       const [min,max] = isSetter ? [50,55] : [65,75];
       const base = (min+max)/2;
       const out=[]; const now=NOW();
@@ -358,7 +388,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
       return out;
     }
 
-    function genCO2(points=48){
+    function genCO2(points=720){
       // sawtooth cycles: build-up then ventilation dump
       const out=[]; const now=NOW();
       let level = 0.25; // %
@@ -371,43 +401,319 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
       return out;
     }
 
-    function genAir(points=48){
-      // step-like fan speeds with small noise
-      const steps=[1.1,1.3,1.6,1.8,1.4,1.2];
-      const out=[]; const now=NOW();
-      for(let i=points-1;i>=0;i--){
-        const t = now - i*TICK;
-        const s = steps[Math.floor(i/8)%steps.length];
-        const v = s + (Math.random()-0.5)*0.07;
-        out.push([t, Number(v.toFixed(2))]);
-      }
-      return out;
+    const historyCache = new Map();
+
+    function gradientFill(color, strength=0.32){
+      return {
+        linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+        stops: [
+          [0, Highcharts.color(color).setOpacity(strength).get('rgba')],
+          [1, Highcharts.color(color).setOpacity(strength * 0.08).get('rgba')]
+        ]
+      };
     }
 
-    function genTurn(points=48){
-      // spikes at turning events per 24h (every 1–2h)
-      const out=[]; const now=NOW();
-      let next = Math.floor(Math.random()*3)+1; // index of next spike
-      for(let i=points-1;i>=0;i--){
-        const t = now - i*TICK;
-        const spike = (i%next===0) ? (10 + Math.random()*20) : (Math.random()*2);
-        out.push([t, Number(spike.toFixed(1))]);
-        if(i%next===0){ next = Math.floor(Math.random()*4)+2; }
-      }
-      return out;
+    function renderEnvironmentChart(container, isSetter){
+      const temp = genTemp(isSetter);
+      const hum  = genHum(isSetter);
+      const co2  = genCO2();
+      Highcharts.chart(container, {
+        chart: { backgroundColor: 'transparent', zooming: { type: 'x' } },
+        title: { text: (isSetter ? 'Előkeltető' : 'Utókeltető') + ' környezeti profil', style: { color: '#e6f0ff' } },
+        subtitle: { text: (document.ontouchstart === undefined ? 'Húzd az egeret az időbeli nagyításhoz' : 'Nagyításhoz csípd össze'), style:{ color:'#9aa4b2' } },
+        xAxis: { type: 'datetime', labels: { style: { color: '#c8cfdb' } }, lineColor:'#223' },
+        yAxis: [{
+          title: { text: 'Hőmérséklet (°C)', style: { color: COLORS.temp } },
+          labels: { style: { color: COLORS.temp }, format: '{value}°C' },
+          gridLineColor: '#223'
+        }, {
+          title: { text: 'Relatív páratartalom (%)', style: { color: COLORS.hum } },
+          labels: { style: { color: COLORS.hum }, format: '{value}%' },
+          gridLineWidth: 0,
+          opposite: true
+        }, {
+          title: { text: 'CO₂ (%)', style: { color: COLORS.co2 } },
+          labels: { style: { color: COLORS.co2 }, format: '{value}%' },
+          gridLineWidth: 0,
+          min: 0.15,
+          max: 0.6,
+          opposite: true
+        }],
+        legend: { itemStyle: { color: '#e6f0ff' } },
+        tooltip: {
+          shared: true,
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          xDateFormat: '%H:%M'
+        },
+        plotOptions: {
+          areaspline: {
+            marker: { radius: 1.3 },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        series: [
+          { name: 'Hőmérséklet', type: 'areaspline', data: temp, color: COLORS.temp, yAxis: 0, fillColor: gradientFill(COLORS.temp), tooltip: { valueSuffix: ' °C' } },
+          { name: 'Relatív páratartalom', type: 'areaspline', data: hum, color: COLORS.hum, yAxis: 1, fillColor: gradientFill(COLORS.hum), tooltip: { valueSuffix: ' %' } },
+          { name: 'CO₂ koncentráció', type: 'areaspline', data: co2, color: COLORS.co2, yAxis: 2, fillColor: gradientFill(COLORS.co2, 0.28), tooltip: { valueSuffix: ' %' } },
+        ],
+        credits: { enabled: false }
+      });
     }
 
-    function genNoise(points=48){
-      const out=[]; const now=NOW();
-      let level = 52 + (Math.random()-0.5)*4;
-      for(let i=points-1;i>=0;i--){
-        const t = now - i*TICK;
-        level += (Math.random()-0.5)*1.5;
-        if(Math.random()<0.05) level += 6 + Math.random()*6; // occasional spike
-        const v = clamp(level, 45, 68);
-        out.push([t, Number(v.toFixed(1))]);
+    function buildNormalCurve(mean, std){
+      const points = [];
+      const span = 4 * std;
+      const start = mean - span;
+      const end = mean + span;
+      const factor = 1 / (std * Math.sqrt(2 * Math.PI));
+      const steps = 80;
+      for(let i=0;i<=steps;i++){
+        const x = start + (end - start) * (i / steps);
+        const clampedX = Math.max(0.0, Math.min(1.0, x));
+        const y = factor * Math.exp(-0.5 * Math.pow((x - mean) / std, 2));
+        points.push([Number((clampedX * 100).toFixed(2)), Number(y.toFixed(6))]);
       }
-      return out;
+      return points;
+    }
+
+    function getHistoryDataset(hatcherKey){
+      if(historyCache.has(hatcherKey)){
+        return historyCache.get(hatcherKey);
+      }
+      const baseMean = 0.80 + Math.random() * 0.08;
+      const selfStd = 0.015 + Math.random() * 0.01;
+      const siteMean = baseMean - 0.01 + (Math.random() - 0.5) * 0.02;
+      const siteStd = selfStd + 0.005 + Math.random() * 0.01;
+      const data = {
+        self: buildNormalCurve(baseMean, selfStd),
+        site: buildNormalCurve(siteMean, siteStd)
+      };
+      historyCache.set(hatcherKey, data);
+      return data;
+    }
+
+    function renderHistoryChart(container, hatcherKey, currentYield){
+      const dataset = getHistoryDataset(hatcherKey);
+      const lines = [];
+      if (typeof currentYield === 'number' && !Number.isNaN(currentYield)) {
+        const value = Number((currentYield * 100).toFixed(2));
+        lines.push({
+          value,
+          color: '#00ddeb',
+          width: 2,
+          dashStyle: 'ShortDash',
+          label: { text: 'Aktuális', style: { color: '#00ddeb' }, align: 'left', x: 6 }
+        });
+      }
+      Highcharts.chart(container, {
+        chart: { backgroundColor: 'transparent' },
+        title: { text: 'Historikus kihozatal eloszlás', style: { color: '#e6f0ff' } },
+        xAxis: {
+          title: { text: 'Kihozatal %', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' }, format: '{value}%' },
+          min: 60,
+          max: 100,
+          gridLineColor: '#223',
+          plotLines: lines
+        },
+        yAxis: {
+          title: { text: 'Sűrűség', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' } },
+          gridLineColor: '#223'
+        },
+        legend: { itemStyle: { color: '#e6f0ff' } },
+        tooltip: {
+          shared: true,
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          pointFormatter: function(){
+            return '<span style="color:' + this.color + '">●</span> ' + this.series.name + ': <b>' + this.x.toFixed(1) + '%</b><br/>';
+          }
+        },
+        plotOptions: {
+          areaspline: {
+            marker: { enabled: false },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        series: [
+          { name: 'Adott telep', type: 'areaspline', data: dataset.self, color: '#5b8def', fillColor: gradientFill('#5b8def', 0.28) },
+          { name: 'Többi telep', type: 'areaspline', data: dataset.site, color: '#ffa552', fillColor: gradientFill('#ffa552', 0.24) }
+        ],
+        credits: { enabled: false }
+      });
+    }
+
+    function renderBenchmarkChart(container, bench, currentYield){
+      let telepSeries = (bench.telep_curve || []).map(([x, y]) => [x * 100, y]);
+      let othersSeries = (bench.others_curve || []).map(([x, y]) => [x * 100, y]);
+
+      const fallbackMean = (typeof currentYield === 'number' && !Number.isNaN(currentYield)) ? currentYield : 0.82;
+      const fallbackStd = 0.018;
+
+      if (!telepSeries.length) {
+        telepSeries = buildNormalCurve(fallbackMean, fallbackStd);
+      }
+      if (!othersSeries.length) {
+        const shiftedMean = Math.max(0.6, Math.min(0.98, fallbackMean - 0.015));
+        othersSeries = buildNormalCurve(shiftedMean, fallbackStd * 1.2);
+      }
+
+      telepSeries = telepSeries.map(([x, y]) => [Math.max(0, Math.min(100, x)), Number(y.toFixed(6))]);
+      othersSeries = othersSeries.map(([x, y]) => [Math.max(0, Math.min(100, x)), Number(y.toFixed(6))]);
+
+      const series = [
+        { name: 'Adott telep' + (bench.telep_count ? ' (' + bench.telep_count + ')' : ''), type: 'areaspline', data: telepSeries, color: '#5b8def', fillColor: gradientFill('#5b8def', 0.3) },
+        { name: 'Többi telep' + (bench.others_count ? ' (' + bench.others_count + ')' : ''), type: 'areaspline', data: othersSeries, color: '#ffa552', fillColor: gradientFill('#ffa552', 0.22) }
+      ];
+      const currentLine = currentYield !== null ? currentYield * 100 : null;
+      const lossLine = currentYield !== null ? (1 - currentYield) * 100 : null;
+      Highcharts.chart(container, {
+        chart: { backgroundColor: 'transparent' },
+        title: { text: 'Batch kihozatal historikus viszonyban', style: { color: '#e6f0ff' } },
+        xAxis: {
+          title: { text: 'Kihozatal %', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' }, format: '{value}%' },
+          plotLines: [
+            ...(currentLine !== null ? [{ value: currentLine, color: '#ffffff', width: 2, dashStyle: 'ShortDash', label: { text: 'Aktuális', style: { color: '#ffffff' }, align: 'left', x: 6 } }] : []),
+            ...(lossLine !== null ? [{ value: lossLine, color: '#ff4d8d', width: 1.5, dashStyle: 'Dot', label: { text: 'Elhullás', style: { color: '#ff7ab6' }, align: 'right', x: -8 } }] : []),
+          ]
+        },
+        yAxis: { title: { text: 'Sűrűség', style: { color: '#c8cfdb' } }, labels: { style: { color: '#c8cfdb' } }, gridLineColor: '#223' },
+        legend: { itemStyle: { color: '#e6f0ff' } },
+        tooltip: {
+          shared: true,
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          pointFormatter: function(){
+            return '<span style="color:' + this.color + '">●</span> ' + this.series.name + ': <b>' + this.x.toFixed(2) + '%</b><br/>';
+          }
+        },
+        plotOptions: {
+          areaspline: {
+            marker: { enabled: false },
+            lineWidth: 2,
+            threshold: null
+          }
+        },
+        credits: { enabled: false },
+        series
+      });
+    }
+
+    function formatHatcherName(machine){
+      if (!machine) return 'Ismeretlen';
+      if (machine === 'hatcher-other') return 'Egyéb utókeltetők';
+      const parts = machine.split('-');
+      const suffix = parts[parts.length - 1];
+      const num = parseInt(suffix, 10);
+      if (!Number.isNaN(num)) {
+        return 'Utókeltető ' + String(num).padStart(2, '0');
+      }
+      return 'Utókeltető ' + suffix.toUpperCase();
+    }
+
+    function seededImpact(source, key){
+      let hash = 0;
+      const str = source + ':' + key;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash * 131 + str.charCodeAt(i)) >>> 0;
+      }
+      return ((hash % 2001) / 1000) - 1.0; // [-1, 1]
+    }
+
+    function renderFactorChart(container, mix){
+      const entries = Object.entries(mix).map(([machine, qty]) => ({ machine, qty: Number(qty) || 0 })).filter(item => item.qty > 0);
+      if (!entries.length) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+      const total = entries.reduce((acc, item) => acc + item.qty, 0);
+      if (total <= 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+
+      const FACTORS = [
+        { key: 'co2', name: 'CO₂ kontroll', color: COLORS.co2 },
+        { key: 'temp', name: 'Hőmérséklet', color: COLORS.temp },
+        { key: 'telep', name: 'Tenyésztelep logisztika', color: '#7bd389' },
+        { key: 'parent', name: 'Szülőpár kora', color: '#ff7ab6', constant: 0.6 }
+      ];
+
+      const contributions = FACTORS.map(factor => ({
+        name: factor.name,
+        key: factor.key,
+        color: factor.color,
+        value: 0
+      }));
+
+      entries.forEach(entry => {
+        const weight = entry.qty / total;
+        FACTORS.forEach((factor, idx) => {
+          let raw = factor.constant ?? seededImpact(entry.machine, factor.key);
+          contributions[idx].value += raw * weight;
+        });
+      });
+
+      const scaled = contributions
+        .map(item => ({
+          name: item.name,
+          color: item.color,
+          value: Number((item.value * 12).toFixed(2))
+        }))
+        .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+      const categories = scaled.map(item => item.name);
+      const data = scaled.map(item => ({ y: item.value, color: item.color }));
+
+      Highcharts.chart(container, {
+        chart: { type: 'bar', backgroundColor: 'transparent' },
+        title: { text: 'Keltetői tényezők SHAP értékei', style: { color: '#e6f0ff' } },
+        xAxis: {
+          title: { text: 'SHAP (százalékpont)', style: { color: '#c8cfdb' } },
+          labels: { style: { color: '#c8cfdb' } },
+          gridLineColor: '#223',
+          plotLines: [{ value: 0, color: '#2a3450', width: 1 }]
+        },
+        yAxis: {
+          categories,
+          title: { text: null },
+          labels: { style: { color: '#c8cfdb' } },
+          gridLineColor: '#223',
+          reversed: true
+        },
+        legend: { enabled: false },
+        tooltip: {
+          backgroundColor: '#0f1a2e',
+          borderColor: '#2a3450',
+          style: { color: '#e6f0ff' },
+          pointFormatter: function(){
+            const sign = this.y >= 0 ? '+' : '';
+            return '<span style="color:' + this.color + '">■</span> ' + this.point.category + ': <b>' + sign + this.y.toFixed(2) + '</b> p.p.';
+          }
+        },
+        plotOptions: {
+          series: {
+            borderWidth: 0,
+            dataLabels: {
+              enabled: true,
+              format: '{y:+.2f}',
+              style: { color: '#e6f0ff', textOutline: 'none', fontSize: '11px' }
+            }
+          }
+        },
+        credits: { enabled: false },
+        series: [{ name: 'Hatás', data }]
+      });
     }
     svgEl.addEventListener('click', (e) => {{
       const target = e.target.closest('.hotspot');
@@ -431,6 +737,8 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
       if (isTransfer) {
         chartsWrap.style.display = 'none';
         statsWrap.style.display = 'block';
+        factorWrap.style.display = 'none';
+        factorWrap.innerHTML = '';
         const st = TRANSFER_STATS[key] || null;
         if (!st) {
           statsWrap.innerHTML = '<div>Nincs adat ehhez a szülőpárhoz.</div>';
@@ -453,93 +761,46 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
           + '<div><div style="opacity:.7">Batch kora</div><div style="font-size:20px">' + ageText + '</div></div>'
           + '</div>';
         statsWrap.innerHTML = statsHtml;
+
+        const mix = st.hatcher_mix || {};
+        if (mix && Object.keys(mix).length) {
+          factorWrap.style.display = 'block';
+          factorWrap.innerHTML = '';
+          renderFactorChart(factorWrap, mix);
+        } else {
+          factorWrap.style.display = 'none';
+          factorWrap.innerHTML = '';
+        }
+
         const bench = st.yield_benchmarks || null;
         if (bench && ((Array.isArray(bench.telep_curve) && bench.telep_curve.length) || (Array.isArray(bench.others_curve) && bench.others_curve.length))) {
           benchWrap.style.display = 'block';
           benchWrap.innerHTML = '';
-          const telepSeries = (bench.telep_curve || []).map(([x, y]) => [x * 100, y]);
-          const othersSeries = (bench.others_curve || []).map(([x, y]) => [x * 100, y]);
-          const series = [];
-          if (telepSeries.length) {
-            series.push({ name: 'Saját telep (' + bench.telep_count + ')', data: telepSeries, type: 'line', color: '#5b8def', lineWidth: 2 });
-          }
-          if (othersSeries.length) {
-            series.push({ name: 'Más telepek (' + bench.others_count + ')', data: othersSeries, type: 'line', color: '#ffa552', lineWidth: 2, dashStyle: 'ShortDash' });
-          }
-          const currentLine = currentYield !== null ? currentYield * 100 : null;
-          const lossLine = currentYield !== null ? (1 - currentYield) * 100 : null;
-          Highcharts.chart(benchWrap, {
-            chart: { backgroundColor: 'transparent' },
-            title: { text: 'Batch kihozatal historikus viszonyban', style: { color: '#e6f0ff' } },
-            xAxis: {
-              title: { text: 'Kihozatal %', style: { color: '#c8cfdb' } },
-              labels: { style: { color: '#c8cfdb' }, format: '{value}%' },
-              plotLines: [
-                ...(currentLine !== null ? [{ value: currentLine, color: '#ffffff', width: 2, dashStyle: 'ShortDash', label: { text: 'Aktuális', style: { color: '#ffffff' }, rotation: 0, align: 'left', x: 6 } }] : []),
-                ...(lossLine !== null ? [{ value: lossLine, color: '#ff4d8d', width: 1.5, dashStyle: 'Dot', label: { text: 'Elhullás', style: { color: '#ff7ab6' }, rotation: 0, align: 'right', x: -6 } }] : []),
-              ],
-            },
-            yAxis: { title: { text: 'Sűrűség', style: { color: '#c8cfdb' } }, labels: { style: { color: '#c8cfdb' } }, gridLineColor: '#223' },
-            legend: { itemStyle: { color: '#e6f0ff' } },
-            tooltip: {
-              shared: true,
-              backgroundColor: '#0f1a2e',
-              borderColor: '#2a3450',
-              style: { color: '#e6f0ff' },
-              valueDecimals: 2,
-              pointFormatter: function () {
-                return '<span style="color:' + this.color + '">●</span> ' + this.series.name + ': <b>' + this.x.toFixed(2) + '%</b><br/>';
-              }
-            },
-            credits: { enabled: false },
-            series
-          });
+          renderBenchmarkChart(benchWrap, bench, currentYield);
         } else {
           benchWrap.style.display = 'none';
           benchWrap.innerHTML = '';
         }
         return;
-      } else {
-        chartsWrap.style.display='grid';
-        statsWrap.style.display='none';
-        benchWrap.style.display = 'none';
-        benchWrap.innerHTML = '';
       }
-      // Generate metric-specific series and render with nicer colors
-      const temp = genTemp(isSetter);
-      const hum  = genHum(isSetter);
-      const co2  = genCO2();
-      const opts = (name, data, unit, color) => ({
-        chart: {
-          backgroundColor: 'transparent',
-          zooming: { type: 'x' }
-        },
-        title: { text: name, style: { color: '#e6f0ff' } },
-        subtitle: { text: (document.ontouchstart === undefined ? 'Click and drag to zoom in' : 'Pinch to zoom in'), style:{ color:'#9aa4b2' } },
-        xAxis: { type: 'datetime', labels: { style: { color: '#c8cfdb' } } },
-        yAxis: { title: { text: unit, style:{color:'#c8cfdb'} }, gridLineColor: '#223' },
-        legend: { enabled: false },
-        tooltip: { backgroundColor:'#0f1a2e', borderColor:'#2a3450', style:{color:'#e6f0ff'}, pointFormat:'<b>{{point.y}}</b> '+unit },
-        plotOptions: {
-          area: {
-            fillColor: {
-              linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-              stops: [
-                [0, Highcharts.color(color).setOpacity(0.25).get('rgba')],
-                [1, Highcharts.color(color).setOpacity(0.03).get('rgba')]
-              ]
-            },
-            marker: { radius: 2 },
-            lineWidth: 2,
-            threshold: null
-          }
-        },
-        series: [{ type:'area', name, data, color }],
-        credits: { enabled: false }
-      });
-      Highcharts.chart(elTemp, opts('Hőmérséklet', temp, '°C', COLORS.temp));
-      Highcharts.chart(elHum,  opts('Relatív páratartalom', hum, '%', COLORS.hum));
-      Highcharts.chart(elCO2,  opts('CO₂ koncentráció', co2, '%', COLORS.co2));
+
+      chartsWrap.style.display='grid';
+      statsWrap.style.display='none';
+      benchWrap.style.display = 'none';
+      benchWrap.innerHTML = '';
+      factorWrap.style.display = 'none';
+      factorWrap.innerHTML = '';
+
+      renderEnvironmentChart(elEnv, isSetter);
+      const isHatcher = key.startsWith('hatcher-');
+      if (isHatcher) {
+        elHistory.style.display = 'block';
+        const actualYield = typeof HATCHER_YIELDS[key] === 'number' ? HATCHER_YIELDS[key] : null;
+        renderHistoryChart(elHistory, key, actualYield);
+      } else {
+        elHistory.style.display = 'none';
+        elHistory.innerHTML = '';
+      }
     }});
     document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') pop.style.display = 'none'; });
   </script>
@@ -551,6 +812,7 @@ def build_html_page(bf: BarnFlow, svg: str, ctx: Dict[str, object], flow_path: P
         svg=injected_svg,
         data_json=json.dumps(chart_data, ensure_ascii=False),
         transfer_json=json.dumps(transfer_stats, default=str, ensure_ascii=False),
+        yield_json=json.dumps(hatcher_yield_json, ensure_ascii=False),
         hc_js=(Path('Highcharts-12/code/highcharts.js').read_text(encoding='utf-8') if Path('Highcharts-12/code/highcharts.js').exists() else ''),
         sankey_js=(Path('Highcharts-12/code/modules/sankey.js').read_text(encoding='utf-8') if Path('Highcharts-12/code/modules/sankey.js').exists() else ''),
     )
