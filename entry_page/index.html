@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Batch Entry Overview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1220;
+      --panel: #101b2f;
+      --panel-border: #1f2a44;
+      --panel-shadow: rgba(0, 0, 0, 0.32);
+      --node-bg: #0f1b31;
+      --node-border: #2c3650;
+      --node-glow: rgba(0, 221, 235, 0.25);
+      --text: #e6f0ff;
+      --muted: #96a3c2;
+      --warning: #fbcf64;
+      --alert: #ff5f78;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, rgba(0, 221, 235, 0.08), transparent 45%), var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      padding: 20px 28px;
+      background: rgba(11, 18, 32, 0.9);
+      border-bottom: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    header span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      padding: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    section.lane {
+      flex: 1 1 320px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      box-shadow: 0 18px 50px var(--panel-shadow);
+      display: flex;
+      flex-direction: column;
+      max-width: 520px;
+    }
+
+    section.lane header {
+      position: static;
+      background: transparent;
+      border: none;
+      backdrop-filter: none;
+      padding: 18px 22px 6px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    section.lane header h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    section.lane header span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .node-grid {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 14px;
+    }
+
+    .node {
+      position: relative;
+      background: linear-gradient(145deg, rgba(16, 27, 49, 0.95), rgba(24, 37, 63, 0.9));
+      border: 1px solid var(--node-border);
+      border-radius: 16px;
+      padding: 14px 12px;
+      min-height: 94px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .node::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: radial-gradient(circle at top, var(--node-glow), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .node:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      border-color: rgba(0, 221, 235, 0.45);
+    }
+
+    .node:hover::before {
+      opacity: 1;
+    }
+
+    .node .badge {
+      align-self: flex-start;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(0, 221, 235, 0.15);
+      border: 1px solid rgba(0, 221, 235, 0.35);
+      color: #8de8ff;
+    }
+
+    .node h3 {
+      margin: 10px 0 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .node p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .node.warning {
+      border-color: rgba(251, 207, 100, 0.65);
+    }
+
+    .node.warning::before {
+      background: radial-gradient(circle at top, rgba(251, 207, 100, 0.28), transparent 70%);
+    }
+
+    .node.warning .badge {
+      background: rgba(251, 207, 100, 0.22);
+      border-color: rgba(251, 207, 100, 0.55);
+      color: #fbd874;
+    }
+
+    .node.alert {
+      border-color: rgba(255, 95, 120, 0.75);
+    }
+
+    .node.alert::before {
+      background: radial-gradient(circle at top, rgba(255, 95, 120, 0.35), transparent 70%);
+    }
+
+    .node.alert .badge {
+      background: rgba(255, 95, 120, 0.24);
+      border-color: rgba(255, 95, 120, 0.6);
+      color: #ff7a92;
+    }
+
+    footer {
+      padding: 18px 28px 40px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .legend i.default {
+      background: linear-gradient(145deg, rgba(16, 27, 49, 0.95), rgba(24, 37, 63, 0.9));
+      border: 1px solid var(--node-border);
+    }
+
+    .legend i.warning {
+      background: var(--warning);
+    }
+
+    .legend i.alert {
+      background: var(--alert);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Batch Entry Overview</h1>
+    <span>Belépő pont a feldolgozott / feldolgozandó szállítmányokhoz</span>
+  </header>
+
+  <main id="lanes"></main>
+
+  <footer>
+    <div class="legend">
+      <span><i class="default"></i> Normál batch</span>
+      <span><i class="warning"></i> Figyelendő (sárga)</span>
+      <span><i class="alert"></i> Kritikus (piros)</span>
+    </div>
+  </footer>
+
+  <script>
+    const lanes = [
+      { id: 'backlog', label: 'Backlog', count: 24, subtitle: 'Feldolgozásra vár', anchor: '#backlog' },
+      { id: 'processing', label: 'Folyamatban', count: 36, subtitle: 'Aktív feldolgozás', anchor: '#processing' },
+      { id: 'history', label: 'History', count: 42, subtitle: 'Lezárt batch-ek', anchor: '#history' },
+    ];
+
+    const specialStatuses = {
+      'batch-07': 'warning',
+      'batch-19': 'warning',
+      'batch-58': 'warning',
+      'batch-33': 'alert',
+    };
+
+    const root = document.getElementById('lanes');
+    let globalBatchIndex = 1;
+
+    lanes.forEach(({ id, label, count, subtitle }) => {
+      const section = document.createElement('section');
+      section.className = 'lane';
+      section.id = id;
+
+      const laneHeader = document.createElement('header');
+      const h2 = document.createElement('h2');
+      h2.textContent = label;
+      const span = document.createElement('span');
+      span.textContent = `${count} batch`;
+      laneHeader.appendChild(h2);
+      laneHeader.appendChild(span);
+
+      if (subtitle) {
+        const sub = document.createElement('span');
+        sub.style.marginTop = '2px';
+        sub.textContent = subtitle;
+        laneHeader.appendChild(sub);
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'node-grid';
+
+      for (let i = 0; i < count; i += 1) {
+        const batchId = `batch-${String(globalBatchIndex).padStart(2, '0')}`;
+        const node = document.createElement('article');
+        node.className = 'node';
+        const status = specialStatuses[batchId];
+        if (status) {
+          node.classList.add(status);
+        }
+        node.setAttribute('data-batch', batchId);
+
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = id === 'history' ? 'Kész' : (id === 'processing' ? 'Aktív' : 'Várakozik');
+
+        const title = document.createElement('h3');
+        title.textContent = batchId.toUpperCase();
+
+        const meta = document.createElement('p');
+        meta.textContent = status === 'alert'
+          ? 'Azonnali figyelmet igényel'
+          : status === 'warning'
+            ? 'Megfigyelés alatt'
+            : 'Normál prioritás';
+
+        node.appendChild(badge);
+        node.appendChild(title);
+        node.appendChild(meta);
+
+        node.addEventListener('click', () => {
+          window.location.href = `../notebooks/notebooks/outputs/barn_flow_${batchId.replace('batch-', 'Kaba-barn-')}_interactive.html`;
+        });
+
+        grid.appendChild(node);
+        globalBatchIndex += 1;
+      }
+
+      section.appendChild(laneHeader);
+      section.appendChild(grid);
+      root.appendChild(section);
+    });
+  </script>
+</body>
+</html>
