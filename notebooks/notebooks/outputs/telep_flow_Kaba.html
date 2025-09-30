@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kaba telephely összefűzött anyagárama</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background:#0b1220; color:#e6f0ff; font: 15px/1.5 'Inter', system-ui, sans-serif; }
+    header { padding: 16px 24px; border-bottom: 1px solid #223; position:sticky; top:0; background:rgba(11,18,32,0.95); z-index:20; backdrop-filter: blur(8px); }
+    h1 { margin: 0; font-size: 22px; }
+    .layout { display:flex; gap:24px; padding:20px 24px 32px; min-height: calc(100vh - 76px); }
+    .canvas { flex:1 1 70%; position:relative; }
+    svg { width: 100%; height: auto; display:block; border-radius:18px; border:1px solid #1a2338; box-shadow:0 30px 80px rgba(0,0,0,0.35); background:#0b1220; }
+    .node { cursor:pointer; transition:transform 0.18s ease; }
+    .node:hover { transform:translateZ(0) scale(1.04); }
+    .node.active rect:first-child { stroke:#00ddeb; stroke-width:1.6; }
+    path[data-src] { transition:opacity 0.2s ease, stroke-width 0.2s ease; }
+    path.edge-muted { opacity:0.15 !important; }
+    path.edge-active { opacity:1 !important; stroke-width: calc(var(--base-width, 4) * 1.35); filter:drop-shadow(0 0 8px rgba(0,221,235,0.35)); }
+    .tooltip { position:absolute; pointer-events:none; background:rgba(11,18,32,0.94); border:1px solid #2a3450; border-radius:10px; padding:6px 10px; font-size:13px; color:#e6f0ff; box-shadow:0 6px 18px rgba(0,0,0,0.4); display:none; z-index:30; min-width:160px; }
+    aside { flex:1 1 30%; background:#0e172a; border:1px solid #1f2a44; border-radius:18px; padding:18px 20px 22px; box-shadow:0 22px 60px rgba(0,0,0,0.32); position:relative; overflow:auto; max-height:calc(100vh - 140px); }
+    aside h2 { margin:0 0 6px; font-size:20px; }
+    aside h3 { margin:18px 0 6px; font-size:15px; text-transform:uppercase; letter-spacing:0.08em; opacity:0.7; }
+    .stat-grid { display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); margin:14px 0; }
+    .stat-card { background:#101d34; border:1px solid #1f2b45; border-radius:12px; padding:10px 12px; }
+    .stat-card span { display:block; }
+    .stat-card span.value { font-size:20px; font-weight:600; }
+    .neighbors { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+    .neighbors li { background:#101d34; border:1px solid #1f2b45; border-radius:10px; padding:8px 10px; }
+    .neighbors li strong { display:block; font-size:14px; }
+    .neighbors li span { font-size:13px; opacity:0.75; }
+    .empty { opacity:0.7; font-style:italic; margin:6px 0; }
+  </style>
+</head>
+<body>
+  <header><h1>Kaba telephely összefűzött anyagárama</h1></header>
+  <div class="layout">
+    <div class="canvas">
+      <div id="telep-tooltip" class="tooltip"></div>
+      <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1100" viewBox="0 0 1700 1100" style="background:#0b1220">
+<defs>
+            <radialGradient id="nodeGlow" cx="50%" cy="50%" r="60%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#00ddeb" stop-opacity="0.08"/>
+            </radialGradient>
+            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="6" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="8" refX="12" refY="4" orient="auto">
+                <path d="M0,0 L12,4 L0,8 Z" fill="#9aa4b2" />
+            </marker>
+            <marker id="arrowBright" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="10" refX="14" refY="5" orient="auto">
+                <path d="M0,0 L14,5 L0,10 Z" fill="#00e0ff" />
+            </marker>
+            <style>
+                .label { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto; fill:#c8cfdb; }
+            </style>
+        </defs>
+<g class="group" id="group-parent"><rect x="30.0" y="180.0" width="220.0" height="740.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="140.0" y="164.0" text-anchor="middle" font-size="15" opacity="0.9">Tojásfarmok / szülőpárok</text></g>
+<g class="group" id="group-setter"><rect x="260.0" y="160.0" width="220.0" height="780.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="370.0" y="144.0" text-anchor="middle" font-size="15" opacity="0.9">Előkeltetők</text></g>
+<g class="group" id="group-transfer"><rect x="490.0" y="180.0" width="220.0" height="740.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="600.0" y="164.0" text-anchor="middle" font-size="15" opacity="0.9">Transzfer (batch-ek)</text></g>
+<g class="group" id="group-hatcher"><rect x="720.0" y="160.0" width="220.0" height="780.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="830.0" y="144.0" text-anchor="middle" font-size="15" opacity="0.9">Utókeltetők</text></g>
+<g class="group" id="group-truck"><rect x="950.0" y="160.0" width="220.0" height="780.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="1060.0" y="144.0" text-anchor="middle" font-size="15" opacity="0.9">Szállítás</text></g>
+<g class="group" id="group-barn"><rect x="1180.0" y="160.0" width="220.0" height="780.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="1290.0" y="144.0" text-anchor="middle" font-size="15" opacity="0.9">Istállók</text></g>
+<g class="group" id="group-telep"><rect x="1410.0" y="460.0" width="220.0" height="180.0" rx="18" ry="18" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/><text class="label" x="1520.0" y="444.0" text-anchor="middle" font-size="15" opacity="0.9">Telephely</text></g>
+<path d="M184.0,550.0 C233.7,550.0 276.3,592.9 326.0,592.9" fill="none" stroke="#3b4556" stroke-width="3.63" stroke-linecap="round" opacity="0.75" data-src="szulopar-01" data-dst="setter-10" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M184.0,690.0 C233.7,690.0 276.3,678.6 326.0,678.6" fill="none" stroke="#3b4556" stroke-width="3.26" stroke-linecap="round" opacity="0.75" data-src="szulopar-04" data-dst="setter-50" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M184.0,270.0 C233.7,270.0 276.3,250.0 326.0,250.0" fill="none" stroke="#3b4556" stroke-width="3.46" stroke-linecap="round" opacity="0.75" data-src="szulopar-03" data-dst="setter-11" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M184.0,270.0 C233.7,270.0 276.3,335.7 326.0,335.7" fill="none" stroke="#3b4556" stroke-width="2.00" stroke-linecap="round" opacity="0.75" data-src="szulopar-03" data-dst="setter-08" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M184.0,410.0 C233.7,410.0 276.3,507.1 326.0,507.1" fill="none" stroke="#3b4556" stroke-width="1.65" stroke-linecap="round" opacity="0.75" data-src="szulopar-05" data-dst="setter-09" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M184.0,830.0 C233.7,830.0 276.3,764.3 326.0,764.3" fill="none" stroke="#3b4556" stroke-width="2.00" stroke-linecap="round" opacity="0.75" data-src="szulopar-06" data-dst="setter-51" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M184.0,830.0 C233.7,830.0 276.3,850.0 326.0,850.0" fill="none" stroke="#3b4556" stroke-width="1.58" stroke-linecap="round" opacity="0.75" data-src="szulopar-06" data-dst="setter-48" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M184.0,410.0 C233.7,410.0 276.3,421.4 326.0,421.4" fill="none" stroke="#3b4556" stroke-width="3.47" stroke-linecap="round" opacity="0.75" data-src="szulopar-05" data-dst="setter-12" data-stage="setter" marker-end="url(#arrow)"/>
+<path d="M414.0,592.9 C463.7,592.9 506.3,550.0 556.0,550.0" fill="none" stroke="#465065" stroke-width="3.11" stroke-linecap="round" opacity="0.75" data-src="setter-10" data-dst="batch:szulopar-01" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M414.0,678.6 C463.7,678.6 506.3,690.0 556.0,690.0" fill="none" stroke="#465065" stroke-width="2.80" stroke-linecap="round" opacity="0.75" data-src="setter-50" data-dst="batch:szulopar-04" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M414.0,250.0 C463.7,250.0 506.3,270.0 556.0,270.0" fill="none" stroke="#465065" stroke-width="3.01" stroke-linecap="round" opacity="0.75" data-src="setter-11" data-dst="batch:szulopar-03" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M414.0,335.7 C463.7,335.7 506.3,270.0 556.0,270.0" fill="none" stroke="#465065" stroke-width="1.83" stroke-linecap="round" opacity="0.75" data-src="setter-08" data-dst="batch:szulopar-03" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M414.0,507.1 C463.7,507.1 506.3,410.0 556.0,410.0" fill="none" stroke="#465065" stroke-width="1.56" stroke-linecap="round" opacity="0.75" data-src="setter-09" data-dst="batch:szulopar-05" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M414.0,764.3 C463.7,764.3 506.3,830.0 556.0,830.0" fill="none" stroke="#465065" stroke-width="1.84" stroke-linecap="round" opacity="0.75" data-src="setter-51" data-dst="batch:szulopar-06" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M414.0,850.0 C463.7,850.0 506.3,830.0 556.0,830.0" fill="none" stroke="#465065" stroke-width="1.49" stroke-linecap="round" opacity="0.75" data-src="setter-48" data-dst="batch:szulopar-06" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M414.0,421.4 C463.7,421.4 506.3,410.0 556.0,410.0" fill="none" stroke="#465065" stroke-width="3.01" stroke-linecap="round" opacity="0.75" data-src="setter-12" data-dst="batch:szulopar-05" data-stage="transfer" marker-end="url(#arrow)"/>
+<path d="M644.0,550.0 C693.7,550.0 736.3,592.9 786.0,592.9" fill="none" stroke="#4b566a" stroke-width="3.11" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-01" data-dst="hatcher-10" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M644.0,690.0 C693.7,690.0 736.3,678.6 786.0,678.6" fill="none" stroke="#4b566a" stroke-width="2.80" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-04" data-dst="hatcher-50" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M644.0,270.0 C693.7,270.0 736.3,250.0 786.0,250.0" fill="none" stroke="#4b566a" stroke-width="3.01" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-03" data-dst="hatcher-11" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M644.0,270.0 C693.7,270.0 736.3,335.7 786.0,335.7" fill="none" stroke="#4b566a" stroke-width="1.83" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-03" data-dst="hatcher-08" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M644.0,410.0 C693.7,410.0 736.3,507.1 786.0,507.1" fill="none" stroke="#4b566a" stroke-width="1.56" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-05" data-dst="hatcher-09" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M644.0,830.0 C693.7,830.0 736.3,764.3 786.0,764.3" fill="none" stroke="#4b566a" stroke-width="1.84" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-06" data-dst="hatcher-51" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M644.0,830.0 C693.7,830.0 736.3,850.0 786.0,850.0" fill="none" stroke="#4b566a" stroke-width="1.49" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-06" data-dst="hatcher-48" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M644.0,410.0 C693.7,410.0 736.3,421.4 786.0,421.4" fill="none" stroke="#4b566a" stroke-width="3.01" stroke-linecap="round" opacity="0.75" data-src="batch:szulopar-05" data-dst="hatcher-12" data-stage="hatch" marker-end="url(#arrow)"/>
+<path d="M874.0,592.9 C923.7,592.9 966.3,550.0 1016.0,550.0" fill="none" stroke="#55617a" stroke-width="5.43" stroke-linecap="round" opacity="0.85" data-src="hatcher-10" data-dst="shipment-18-truck-01" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,592.9 C923.7,592.9 966.3,700.0 1016.0,700.0" fill="none" stroke="#55617a" stroke-width="4.63" stroke-linecap="round" opacity="0.85" data-src="hatcher-10" data-dst="shipment-18-truck-02" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,678.6 C923.7,678.6 966.3,625.0 1016.0,625.0" fill="none" stroke="#55617a" stroke-width="9.20" stroke-linecap="round" opacity="0.85" data-src="hatcher-50" data-dst="shipment-99-truck-01" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,250.0 C923.7,250.0 966.3,250.0 1016.0,250.0" fill="none" stroke="#55617a" stroke-width="6.64" stroke-linecap="round" opacity="0.85" data-src="hatcher-11" data-dst="shipment-20-truck-01" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,335.7 C923.7,335.7 966.3,325.0 1016.0,325.0" fill="none" stroke="#55617a" stroke-width="1.83" stroke-linecap="round" opacity="0.85" data-src="hatcher-08" data-dst="shipment-14-truck-02" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,507.1 C923.7,507.1 966.3,475.0 1016.0,475.0" fill="none" stroke="#55617a" stroke-width="1.56" stroke-linecap="round" opacity="0.85" data-src="hatcher-09" data-dst="shipment-16-truck-02" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,764.3 C923.7,764.3 966.3,775.0 1016.0,775.0" fill="none" stroke="#55617a" stroke-width="2.49" stroke-linecap="round" opacity="0.85" data-src="hatcher-51" data-dst="shipment-101-truck-01" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,850.0 C923.7,850.0 966.3,850.0 1016.0,850.0" fill="none" stroke="#55617a" stroke-width="1.49" stroke-linecap="round" opacity="0.85" data-src="hatcher-48" data-dst="shipment-95-truck-02" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M874.0,421.4 C923.7,421.4 966.3,400.0 1016.0,400.0" fill="none" stroke="#55617a" stroke-width="6.64" stroke-linecap="round" opacity="0.85" data-src="hatcher-12" data-dst="shipment-22-truck-01" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,550.0 C1153.7,550.0 1196.3,577.3 1246.0,577.3" fill="none" stroke="#5f6d85" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="shipment-18-truck-01" data-dst="barn:Kaba-barn-01" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,550.0 C1153.7,550.0 1196.3,795.5 1246.0,795.5" fill="none" stroke="#5f6d85" stroke-width="1.50" stroke-linecap="round" opacity="0.85" data-src="shipment-18-truck-01" data-dst="barn:Kaba-barn-02" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,625.0 C1153.7,625.0 1196.3,795.5 1246.0,795.5" fill="none" stroke="#5f6d85" stroke-width="1.65" stroke-linecap="round" opacity="0.85" data-src="shipment-99-truck-01" data-dst="barn:Kaba-barn-02" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,250.0 C1153.7,250.0 1196.3,250.0 1246.0,250.0" fill="none" stroke="#5f6d85" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="shipment-20-truck-01" data-dst="barn:Kaba-barn-03" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,250.0 C1153.7,250.0 1196.3,304.5 1246.0,304.5" fill="none" stroke="#5f6d85" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="shipment-20-truck-01" data-dst="barn:Kaba-barn-04" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,250.0 C1153.7,250.0 1196.3,522.7 1246.0,522.7" fill="none" stroke="#5f6d85" stroke-width="1.50" stroke-linecap="round" opacity="0.85" data-src="shipment-20-truck-01" data-dst="barn:Kaba-barn-05" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,625.0 C1153.7,625.0 1196.3,522.7 1246.0,522.7" fill="none" stroke="#5f6d85" stroke-width="1.65" stroke-linecap="round" opacity="0.85" data-src="shipment-99-truck-01" data-dst="barn:Kaba-barn-05" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,325.0 C1153.7,325.0 1196.3,359.1 1246.0,359.1" fill="none" stroke="#5f6d85" stroke-width="1.83" stroke-linecap="round" opacity="0.85" data-src="shipment-14-truck-02" data-dst="barn:Kaba-barn-06" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,625.0 C1153.7,625.0 1196.3,359.1 1246.0,359.1" fill="none" stroke="#5f6d85" stroke-width="1.32" stroke-linecap="round" opacity="0.85" data-src="shipment-99-truck-01" data-dst="barn:Kaba-barn-06" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,475.0 C1153.7,475.0 1196.3,631.8 1246.0,631.8" fill="none" stroke="#5f6d85" stroke-width="1.56" stroke-linecap="round" opacity="0.85" data-src="shipment-16-truck-02" data-dst="barn:Kaba-barn-07" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,625.0 C1153.7,625.0 1196.3,631.8 1246.0,631.8" fill="none" stroke="#5f6d85" stroke-width="1.60" stroke-linecap="round" opacity="0.85" data-src="shipment-99-truck-01" data-dst="barn:Kaba-barn-07" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,700.0 C1153.7,700.0 1196.3,686.4 1246.0,686.4" fill="none" stroke="#5f6d85" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="shipment-18-truck-02" data-dst="barn:Kaba-barn-08" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,700.0 C1153.7,700.0 1196.3,850.0 1246.0,850.0" fill="none" stroke="#5f6d85" stroke-width="1.30" stroke-linecap="round" opacity="0.85" data-src="shipment-18-truck-02" data-dst="barn:Kaba-barn-09" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,625.0 C1153.7,625.0 1196.3,850.0 1246.0,850.0" fill="none" stroke="#5f6d85" stroke-width="1.37" stroke-linecap="round" opacity="0.85" data-src="shipment-99-truck-01" data-dst="barn:Kaba-barn-09" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,850.0 C1153.7,850.0 1196.3,850.0 1246.0,850.0" fill="none" stroke="#5f6d85" stroke-width="1.49" stroke-linecap="round" opacity="0.85" data-src="shipment-95-truck-02" data-dst="barn:Kaba-barn-09" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,775.0 C1153.7,775.0 1196.3,850.0 1246.0,850.0" fill="none" stroke="#5f6d85" stroke-width="1.39" stroke-linecap="round" opacity="0.85" data-src="shipment-101-truck-01" data-dst="barn:Kaba-barn-09" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,400.0 C1153.7,400.0 1196.3,413.6 1246.0,413.6" fill="none" stroke="#5f6d85" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="shipment-22-truck-01" data-dst="barn:Kaba-barn-10" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,400.0 C1153.7,400.0 1196.3,468.2 1246.0,468.2" fill="none" stroke="#5f6d85" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="shipment-22-truck-01" data-dst="barn:Kaba-barn-11" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,400.0 C1153.7,400.0 1196.3,740.9 1246.0,740.9" fill="none" stroke="#5f6d85" stroke-width="1.50" stroke-linecap="round" opacity="0.85" data-src="shipment-22-truck-01" data-dst="barn:Kaba-barn-12" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1104.0,775.0 C1153.7,775.0 1196.3,740.9 1246.0,740.9" fill="none" stroke="#5f6d85" stroke-width="1.65" stroke-linecap="round" opacity="0.85" data-src="shipment-101-truck-01" data-dst="barn:Kaba-barn-12" data-stage="truck" marker-end="url(#arrow)"/>
+<path d="M1334.0,577.3 C1383.7,577.3 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-01" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,795.5 C1383.7,795.5 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-02" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,250.0 C1383.7,250.0 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-03" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,304.5 C1383.7,304.5 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-04" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,522.7 C1383.7,522.7 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-05" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,359.1 C1383.7,359.1 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-06" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,631.8 C1383.7,631.8 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-07" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,686.4 C1383.7,686.4 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-08" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,850.0 C1383.7,850.0 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-09" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,413.6 C1383.7,413.6 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-10" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,468.2 C1383.7,468.2 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-11" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<path d="M1334.0,740.9 C1383.7,740.9 1426.3,550.0 1476.0,550.0" fill="none" stroke="#6e7c9c" stroke-width="1.95" stroke-linecap="round" opacity="0.85" data-src="barn:Kaba-barn-12" data-dst="telep:Kaba" data-stage="telep" marker-end="url(#arrow)"/>
+<g class="node" data-key="szulopar-03" data-label="Szülőpár 03" data-weight="97217" data-column="parent" transform="translate(140.0,270.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 03</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">97 217 db</text></g>
+<g class="node" data-key="szulopar-05" data-label="Szülőpár 05" data-weight="86669" data-column="parent" transform="translate(140.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 05</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">86 669 db</text></g>
+<g class="node" data-key="szulopar-01" data-label="Szülőpár 01" data-weight="77366" data-column="parent" transform="translate(140.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">77 366 db</text></g>
+<g class="node" data-key="szulopar-04" data-label="Szülőpár 04" data-weight="65627" data-column="parent" transform="translate(140.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 04</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">65 627 db</text></g>
+<g class="node" data-key="szulopar-06" data-label="Szülőpár 06" data-weight="37278" data-column="parent" transform="translate(140.0,830.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Szülőpár 06</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">37 278 db</text></g>
+<g class="node" data-key="setter-11" data-label="Előkeltető 11" data-weight="71884" data-column="setter" transform="translate(370.0,250.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 11</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">71 884 db</text></g>
+<g class="node" data-key="setter-08" data-label="Előkeltető 08" data-weight="25333" data-column="setter" transform="translate(370.0,335.7)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 08</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">25 333 db</text></g>
+<g class="node" data-key="setter-12" data-label="Előkeltető 12" data-weight="72281" data-column="setter" transform="translate(370.0,421.4)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 12</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">72 281 db</text></g>
+<g class="node" data-key="setter-09" data-label="Előkeltető 09" data-weight="14388" data-column="setter" transform="translate(370.0,507.1)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 09</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">14 388 db</text></g>
+<g class="node" data-key="setter-10" data-label="Előkeltető 10" data-weight="77366" data-column="setter" transform="translate(370.0,592.9)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 10</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">77 366 db</text></g>
+<g class="node" data-key="setter-50" data-label="Előkeltető 50" data-weight="65627" data-column="setter" transform="translate(370.0,678.6)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 50</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">65 627 db</text></g>
+<g class="node" data-key="setter-51" data-label="Előkeltető 51" data-weight="25348" data-column="setter" transform="translate(370.0,764.3)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 51</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">25 348 db</text></g>
+<g class="node" data-key="setter-48" data-label="Előkeltető 48" data-weight="11931" data-column="setter" transform="translate(370.0,850.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Előkeltető 48</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">11 931 db</text></g>
+<g class="node" data-key="batch:szulopar-03" data-label="Batch P03" data-weight="77658" data-column="transfer" transform="translate(600.0,270.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P03</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">77 658 db</text></g>
+<g class="node" data-key="batch:szulopar-05" data-label="Batch P05" data-weight="68931" data-column="transfer" transform="translate(600.0,410.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P05</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">68 931 db</text></g>
+<g class="node" data-key="batch:szulopar-01" data-label="Batch P01" data-weight="60860" data-column="transfer" transform="translate(600.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">60 860 db</text></g>
+<g class="node" data-key="batch:szulopar-04" data-label="Batch P04" data-weight="50861" data-column="transfer" transform="translate(600.0,690.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P04</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">50 861 db</text></g>
+<g class="node" data-key="batch:szulopar-06" data-label="Batch P06" data-weight="29690" data-column="transfer" transform="translate(600.0,830.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Batch P06</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">29 690 db</text></g>
+<g class="node" data-key="hatcher-11" data-label="Utókeltető 11" data-weight="57600" data-column="hatcher" transform="translate(830.0,250.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 11</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">57 600 db</text></g>
+<g class="node" data-key="hatcher-08" data-label="Utókeltető 08" data-weight="20058" data-column="hatcher" transform="translate(830.0,335.7)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 08</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">20 058 db</text></g>
+<g class="node" data-key="hatcher-12" data-label="Utókeltető 12" data-weight="57600" data-column="hatcher" transform="translate(830.0,421.4)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 12</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">57 600 db</text></g>
+<g class="node" data-key="hatcher-09" data-label="Utókeltető 09" data-weight="11331" data-column="hatcher" transform="translate(830.0,507.1)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 09</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">11 331 db</text></g>
+<g class="node" data-key="hatcher-10" data-label="Utókeltető 10" data-weight="60860" data-column="hatcher" transform="translate(830.0,592.9)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 10</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">60 860 db</text></g>
+<g class="node" data-key="hatcher-50" data-label="Utókeltető 50" data-weight="50861" data-column="hatcher" transform="translate(830.0,678.6)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 50</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">50 861 db</text></g>
+<g class="node" data-key="hatcher-51" data-label="Utókeltető 51" data-weight="20438" data-column="hatcher" transform="translate(830.0,764.3)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 51</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">20 438 db</text></g>
+<g class="node" data-key="hatcher-48" data-label="Utókeltető 48" data-weight="9252" data-column="hatcher" transform="translate(830.0,850.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Utókeltető 48</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">9 252 db</text></g>
+<g class="node" data-key="shipment-20-truck-01" data-label="Kamion 01" data-weight="57600" data-column="truck" transform="translate(1060.0,250.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">57 600 db</text></g>
+<g class="node" data-key="shipment-14-truck-02" data-label="Kamion 02" data-weight="20058" data-column="truck" transform="translate(1060.0,325.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">20 058 db</text></g>
+<g class="node" data-key="shipment-22-truck-01" data-label="Kamion 01" data-weight="57600" data-column="truck" transform="translate(1060.0,400.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">57 600 db</text></g>
+<g class="node" data-key="shipment-16-truck-02" data-label="Kamion 02" data-weight="11331" data-column="truck" transform="translate(1060.0,475.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">11 331 db</text></g>
+<g class="node" data-key="shipment-18-truck-01" data-label="Kamion 01" data-weight="33600" data-column="truck" transform="translate(1060.0,550.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">33 600 db</text></g>
+<g class="node" data-key="shipment-99-truck-01" data-label="Kamion 01" data-weight="50861" data-column="truck" transform="translate(1060.0,625.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">50 861 db</text></g>
+<g class="node" data-key="shipment-18-truck-02" data-label="Kamion 02" data-weight="27260" data-column="truck" transform="translate(1060.0,700.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">27 260 db</text></g>
+<g class="node" data-key="shipment-101-truck-01" data-label="Kamion 01" data-weight="20438" data-column="truck" transform="translate(1060.0,775.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">20 438 db</text></g>
+<g class="node" data-key="shipment-95-truck-02" data-label="Kamion 02" data-weight="9252" data-column="truck" transform="translate(1060.0,850.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Kamion 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">9 252 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-03" data-label="Istálló 03" data-weight="24000" data-column="barn" transform="translate(1290.0,250.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 03</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-04" data-label="Istálló 04" data-weight="24000" data-column="barn" transform="translate(1290.0,304.5)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 04</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-06" data-label="Istálló 06" data-weight="24000" data-column="barn" transform="translate(1290.0,359.1)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 06</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-10" data-label="Istálló 10" data-weight="24000" data-column="barn" transform="translate(1290.0,413.6)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 10</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-11" data-label="Istálló 11" data-weight="24000" data-column="barn" transform="translate(1290.0,468.2)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 11</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-05" data-label="Istálló 05" data-weight="24000" data-column="barn" transform="translate(1290.0,522.7)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 05</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-01" data-label="Istálló 01" data-weight="24000" data-column="barn" transform="translate(1290.0,577.3)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 01</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-07" data-label="Istálló 07" data-weight="24000" data-column="barn" transform="translate(1290.0,631.8)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 07</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-08" data-label="Istálló 08" data-weight="24000" data-column="barn" transform="translate(1290.0,686.4)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 08</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-12" data-label="Istálló 12" data-weight="24000" data-column="barn" transform="translate(1290.0,740.9)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 12</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-02" data-label="Istálló 02" data-weight="24000" data-column="barn" transform="translate(1290.0,795.5)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 02</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<g class="node" data-key="barn:Kaba-barn-09" data-label="Istálló 09" data-weight="24000" data-column="barn" transform="translate(1290.0,850.0)"><rect x="-24.0" y="-24.0" width="48" height="48" rx="10" ry="10" fill="url(#nodeGlow)" stroke="#8a93a6" stroke-width="1.2"/><rect x="-17.0" y="-17.0" width="34" height="34" rx="8" ry="8" fill="#0f1a2e" stroke="#2c3650" stroke-width="2"/><text class="label" x="0" y="40.0" text-anchor="middle" font-size="14" fill="#e6f0ff">Istálló 09</text><text class="label" x="0" y="56.0" text-anchor="middle" font-size="12" opacity="0.85">24 000 db</text></g>
+<text class="label" x="80" y="72" font-size="24" fill="#f2f5ff" opacity="0.95">Kaba telephely · 12 istálló</text>
+<g transform="translate(60,820)">
+    <circle cx="0" cy="0" r="6" fill="#00e0ff"/>
+    <text class="label" x="14" y="5" font-size="14">Kiemelt élő batch útvonala</text>
+    <line x1="0" y1="30" x2="70" y2="30" stroke="#3b4556" stroke-width="3"/>
+    <text class="label" x="82" y="35" font-size="14">Aggregált anyagáram</text>
+    <rect x="-10" y="52" width="24" height="14" rx="3" ry="3" fill="#0e172a" stroke="#2a3450" stroke-width="1.5" stroke-dasharray="6 6"/>
+    <text class="label" x="20" y="63" font-size="14">Csoport kerete</text>
+</g>
+
+<g id="timeline"></g>
+</svg>
+    </div>
+    <aside id="panel">
+      <h2>Telephely összefoglaló</h2>
+      <div id="panel-content" class="panel-content">
+        <div class="stat-grid">
+          <div class="stat-card"><span>Aktuális állomány</span><span class="value" id="telep-current"></span></div>
+          <div class="stat-card"><span>Beérkezett</span><span class="value" id="telep-arrived"></span></div>
+          <div class="stat-card"><span>Elment</span><span class="value" id="telep-departed"></span></div>
+          <div class="stat-card"><span>Istállók</span><span class="value" id="telep-barns"></span></div>
+        </div>
+        <p class="empty">Válassz egy csomópontot a részletes adatokhoz.</p>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const NODE_DATA = {"szulopar-03": {"label": "Szülőpár 03", "column": "parent", "weight": 97217.14234731425, "members": ["szulopar-03"]}, "szulopar-05": {"label": "Szülőpár 05", "column": "parent", "weight": 86669.29876829045, "members": ["szulopar-05"]}, "szulopar-01": {"label": "Szülőpár 01", "column": "parent", "weight": 77365.92623144005, "members": ["szulopar-01"]}, "szulopar-04": {"label": "Szülőpár 04", "column": "parent", "weight": 65627.35501980642, "members": ["szulopar-04"]}, "szulopar-06": {"label": "Szülőpár 06", "column": "parent", "weight": 37278.32743085953, "members": ["szulopar-06"]}, "setter-11": {"label": "Előkeltető 11", "column": "setter", "weight": 71884.41886744103, "members": ["setter-11"]}, "setter-08": {"label": "Előkeltető 08", "column": "setter", "weight": 25332.723479873286, "members": ["setter-08"]}, "setter-12": {"label": "Előkeltető 12", "column": "setter", "weight": 72281.45531614267, "members": ["setter-12"]}, "setter-09": {"label": "Előkeltető 09", "column": "setter", "weight": 14387.843452147796, "members": ["setter-09"]}, "setter-10": {"label": "Előkeltető 10", "column": "setter", "weight": 77365.92623144005, "members": ["setter-10"]}, "setter-50": {"label": "Előkeltető 50", "column": "setter", "weight": 65627.35501980642, "members": ["setter-50"]}, "setter-51": {"label": "Előkeltető 51", "column": "setter", "weight": 25347.687150837988, "members": ["setter-51"]}, "setter-48": {"label": "Előkeltető 48", "column": "setter", "weight": 11930.640280021538, "members": ["setter-48"]}, "batch:szulopar-03": {"label": "Batch P03", "column": "transfer", "weight": 77658.00000000001, "members": ["batch:szulopar-03"]}, "batch:szulopar-05": {"label": "Batch P05", "column": "transfer", "weight": 68931.0, "members": ["batch:szulopar-05"]}, "batch:szulopar-01": {"label": "Batch P01", "column": "transfer", "weight": 60860.00000000001, "members": ["batch:szulopar-01"]}, "batch:szulopar-04": {"label": "Batch P04", "column": "transfer", "weight": 50860.99999999998, "members": ["batch:szulopar-04"]}, "batch:szulopar-06": {"label": "Batch P06", "column": "transfer", "weight": 29690.0, "members": ["batch:szulopar-06"]}, "hatcher-11": {"label": "Utókeltető 11", "column": "hatcher", "weight": 57600.00000000001, "members": ["hatcher-11"]}, "hatcher-08": {"label": "Utókeltető 08", "column": "hatcher", "weight": 20058.0, "members": ["hatcher-08"]}, "hatcher-12": {"label": "Utókeltető 12", "column": "hatcher", "weight": 57600.0, "members": ["hatcher-12"]}, "hatcher-09": {"label": "Utókeltető 09", "column": "hatcher", "weight": 11330.999999999998, "members": ["hatcher-09"]}, "hatcher-10": {"label": "Utókeltető 10", "column": "hatcher", "weight": 60860.00000000001, "members": ["hatcher-10"]}, "hatcher-50": {"label": "Utókeltető 50", "column": "hatcher", "weight": 50860.99999999998, "members": ["hatcher-50"]}, "hatcher-51": {"label": "Utókeltető 51", "column": "hatcher", "weight": 20438.0, "members": ["hatcher-51"]}, "hatcher-48": {"label": "Utókeltető 48", "column": "hatcher", "weight": 9252.0, "members": ["hatcher-48"]}, "shipment-20-truck-01": {"label": "Kamion 01", "column": "truck", "weight": 57600.0, "members": ["shipment-20-truck-01"]}, "shipment-14-truck-02": {"label": "Kamion 02", "column": "truck", "weight": 20058.0, "members": ["shipment-14-truck-02"]}, "shipment-22-truck-01": {"label": "Kamion 01", "column": "truck", "weight": 57600.0, "members": ["shipment-22-truck-01"]}, "shipment-16-truck-02": {"label": "Kamion 02", "column": "truck", "weight": 11331.0, "members": ["shipment-16-truck-02"]}, "shipment-18-truck-01": {"label": "Kamion 01", "column": "truck", "weight": 33600.0, "members": ["shipment-18-truck-01"]}, "shipment-18-truck-02": {"label": "Kamion 02", "column": "truck", "weight": 27260.0, "members": ["shipment-18-truck-02"]}, "shipment-99-truck-01": {"label": "Kamion 01", "column": "truck", "weight": 50861.0, "members": ["shipment-99-truck-01"]}, "shipment-101-truck-01": {"label": "Kamion 01", "column": "truck", "weight": 20438.0, "members": ["shipment-101-truck-01"]}, "shipment-95-truck-02": {"label": "Kamion 02", "column": "truck", "weight": 9252.0, "members": ["shipment-95-truck-02"]}, "barn:Kaba-barn-03": {"label": "Istálló 03", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-03"]}, "barn:Kaba-barn-04": {"label": "Istálló 04", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-04"]}, "barn:Kaba-barn-06": {"label": "Istálló 06", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-06"]}, "barn:Kaba-barn-10": {"label": "Istálló 10", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-10"]}, "barn:Kaba-barn-11": {"label": "Istálló 11", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-11"]}, "barn:Kaba-barn-05": {"label": "Istálló 05", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-05"]}, "barn:Kaba-barn-01": {"label": "Istálló 01", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-01"]}, "barn:Kaba-barn-07": {"label": "Istálló 07", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-07"]}, "barn:Kaba-barn-08": {"label": "Istálló 08", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-08"]}, "barn:Kaba-barn-12": {"label": "Istálló 12", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-12"]}, "barn:Kaba-barn-02": {"label": "Istálló 02", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-02"]}, "barn:Kaba-barn-09": {"label": "Istálló 09", "column": "barn", "weight": 24000.0, "members": ["Kaba-barn-09"]}, "telep:Kaba": {"label": "Kaba telephely", "column": "telep", "weight": 288000.0, "members": ["Kaba-barn-01", "Kaba-barn-02", "Kaba-barn-03", "Kaba-barn-04", "Kaba-barn-05", "Kaba-barn-06", "Kaba-barn-07", "Kaba-barn-08", "Kaba-barn-09", "Kaba-barn-10", "Kaba-barn-11", "Kaba-barn-12"]}};
+    const EDGE_DATA = [{"src": "szulopar-01", "dst": "setter-10", "weight": 77365.92623144005, "stage": "setter"}, {"src": "szulopar-04", "dst": "setter-50", "weight": 65627.35501980642, "stage": "setter"}, {"src": "szulopar-03", "dst": "setter-11", "weight": 71884.41886744103, "stage": "setter"}, {"src": "szulopar-03", "dst": "setter-08", "weight": 25332.723479873286, "stage": "setter"}, {"src": "szulopar-05", "dst": "setter-09", "weight": 14387.843452147796, "stage": "setter"}, {"src": "szulopar-06", "dst": "setter-51", "weight": 25347.687150837988, "stage": "setter"}, {"src": "szulopar-06", "dst": "setter-48", "weight": 11930.640280021538, "stage": "setter"}, {"src": "szulopar-05", "dst": "setter-12", "weight": 72281.45531614267, "stage": "setter"}, {"src": "setter-10", "dst": "batch:szulopar-01", "weight": 60860.00000000001, "stage": "transfer"}, {"src": "setter-50", "dst": "batch:szulopar-04", "weight": 50860.99999999998, "stage": "transfer"}, {"src": "setter-11", "dst": "batch:szulopar-03", "weight": 57600.00000000001, "stage": "transfer"}, {"src": "setter-08", "dst": "batch:szulopar-03", "weight": 20058.0, "stage": "transfer"}, {"src": "setter-09", "dst": "batch:szulopar-05", "weight": 11330.999999999998, "stage": "transfer"}, {"src": "setter-51", "dst": "batch:szulopar-06", "weight": 20438.0, "stage": "transfer"}, {"src": "setter-48", "dst": "batch:szulopar-06", "weight": 9252.0, "stage": "transfer"}, {"src": "setter-12", "dst": "batch:szulopar-05", "weight": 57600.0, "stage": "transfer"}, {"src": "batch:szulopar-01", "dst": "hatcher-10", "weight": 60860.00000000001, "stage": "hatch"}, {"src": "batch:szulopar-04", "dst": "hatcher-50", "weight": 50860.99999999998, "stage": "hatch"}, {"src": "batch:szulopar-03", "dst": "hatcher-11", "weight": 57600.00000000001, "stage": "hatch"}, {"src": "batch:szulopar-03", "dst": "hatcher-08", "weight": 20058.0, "stage": "hatch"}, {"src": "batch:szulopar-05", "dst": "hatcher-09", "weight": 11330.999999999998, "stage": "hatch"}, {"src": "batch:szulopar-06", "dst": "hatcher-51", "weight": 20438.0, "stage": "hatch"}, {"src": "batch:szulopar-06", "dst": "hatcher-48", "weight": 9252.0, "stage": "hatch"}, {"src": "batch:szulopar-05", "dst": "hatcher-12", "weight": 57600.0, "stage": "hatch"}, {"src": "hatcher-10", "dst": "shipment-18-truck-01", "weight": 134400.0, "stage": "truck"}, {"src": "hatcher-10", "dst": "shipment-18-truck-02", "weight": 109040.00000000001, "stage": "truck"}, {"src": "hatcher-50", "dst": "shipment-99-truck-01", "weight": 254305.00000000003, "stage": "truck"}, {"src": "hatcher-11", "dst": "shipment-20-truck-01", "weight": 172799.99999999997, "stage": "truck"}, {"src": "hatcher-08", "dst": "shipment-14-truck-02", "weight": 20058.0, "stage": "truck"}, {"src": "hatcher-09", "dst": "shipment-16-truck-02", "weight": 11330.999999999998, "stage": "truck"}, {"src": "hatcher-51", "dst": "shipment-101-truck-01", "weight": 40875.99999999999, "stage": "truck"}, {"src": "hatcher-48", "dst": "shipment-95-truck-02", "weight": 9252.0, "stage": "truck"}, {"src": "hatcher-12", "dst": "shipment-22-truck-01", "weight": 172800.0, "stage": "truck"}, {"src": "shipment-18-truck-01", "dst": "barn:Kaba-barn-01", "weight": 24000.0, "stage": "truck"}, {"src": "shipment-18-truck-01", "dst": "barn:Kaba-barn-02", "weight": 9600.0, "stage": "truck"}, {"src": "shipment-99-truck-01", "dst": "barn:Kaba-barn-02", "weight": 14400.0, "stage": "truck"}, {"src": "shipment-20-truck-01", "dst": "barn:Kaba-barn-03", "weight": 24000.0, "stage": "truck"}, {"src": "shipment-20-truck-01", "dst": "barn:Kaba-barn-04", "weight": 24000.0, "stage": "truck"}, {"src": "shipment-20-truck-01", "dst": "barn:Kaba-barn-05", "weight": 9600.0, "stage": "truck"}, {"src": "shipment-99-truck-01", "dst": "barn:Kaba-barn-05", "weight": 14400.0, "stage": "truck"}, {"src": "shipment-14-truck-02", "dst": "barn:Kaba-barn-06", "weight": 20058.0, "stage": "truck"}, {"src": "shipment-99-truck-01", "dst": "barn:Kaba-barn-06", "weight": 3942.0, "stage": "truck"}, {"src": "shipment-16-truck-02", "dst": "barn:Kaba-barn-07", "weight": 11331.0, "stage": "truck"}, {"src": "shipment-99-truck-01", "dst": "barn:Kaba-barn-07", "weight": 12669.0, "stage": "truck"}, {"src": "shipment-18-truck-02", "dst": "barn:Kaba-barn-08", "weight": 24000.0, "stage": "truck"}, {"src": "shipment-18-truck-02", "dst": "barn:Kaba-barn-09", "weight": 3260.0, "stage": "truck"}, {"src": "shipment-99-truck-01", "dst": "barn:Kaba-barn-09", "weight": 5450.0, "stage": "truck"}, {"src": "shipment-95-truck-02", "dst": "barn:Kaba-barn-09", "weight": 9252.0, "stage": "truck"}, {"src": "shipment-101-truck-01", "dst": "barn:Kaba-barn-09", "weight": 6038.0, "stage": "truck"}, {"src": "shipment-22-truck-01", "dst": "barn:Kaba-barn-10", "weight": 24000.0, "stage": "truck"}, {"src": "shipment-22-truck-01", "dst": "barn:Kaba-barn-11", "weight": 24000.0, "stage": "truck"}, {"src": "shipment-22-truck-01", "dst": "barn:Kaba-barn-12", "weight": 9600.0, "stage": "truck"}, {"src": "shipment-101-truck-01", "dst": "barn:Kaba-barn-12", "weight": 14400.0, "stage": "truck"}, {"src": "barn:Kaba-barn-01", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-02", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-03", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-04", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-05", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-06", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-07", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-08", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-09", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-10", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-11", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}, {"src": "barn:Kaba-barn-12", "dst": "telep:Kaba", "weight": 24000.0, "stage": "telep"}];
+    const BARN_DATA = {"barn:Kaba-barn-01": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 1.0}, "barn:Kaba-barn-02": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 2.0}, "barn:Kaba-barn-03": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 1.0}, "barn:Kaba-barn-04": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 1.0}, "barn:Kaba-barn-05": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 2.0}, "barn:Kaba-barn-06": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 2.0}, "barn:Kaba-barn-07": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 2.0}, "barn:Kaba-barn-08": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 1.0}, "barn:Kaba-barn-09": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 4.0}, "barn:Kaba-barn-10": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 1.0}, "barn:Kaba-barn-11": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 1.0}, "barn:Kaba-barn-12": {"current": 24000.0, "arrived": 24000.0, "departed": 0, "shipments": 2.0}};
+    const TELEP_DATA = {"current": 288000.0, "arrived": 288000.0, "departed": 0.0, "barns": 12};
+
+    const tooltip = document.getElementById('telep-tooltip');
+    const panelContent = document.getElementById('panel-content');
+    const svg = document.querySelector('svg');
+
+    function formatQty(value) {
+      if (value == null) return '—';
+      const num = Number(value);
+      if (!Number.isFinite(num)) return '—';
+      if (Math.abs(num) >= 1_000_000) return (num/1_000_000).toFixed(2).replace('.', ',') + ' M';
+      if (Math.abs(num) >= 1_000) return Math.round(num).toLocaleString('hu-HU');
+      return Math.round(num).toLocaleString('hu-HU');
+    }
+
+    function renderSummary(data) {
+      document.getElementById('telep-current').textContent = formatQty(data.current) + ' db';
+      document.getElementById('telep-arrived').textContent = formatQty(data.arrived) + ' db';
+      document.getElementById('telep-departed').textContent = formatQty(data.departed) + ' db';
+      document.getElementById('telep-barns').textContent = data.barns?.toString?.() || '—';
+    }
+
+    function showTooltip(node, ev) {
+      const label = node.dataset.label || '';
+      const weight = node.dataset.weight || '0';
+      tooltip.innerHTML = `<strong>${label}</strong><br>${Number(weight).toLocaleString('hu-HU')} db`;
+      tooltip.style.display = 'block';
+      positionTooltip(ev);
+    }
+
+    function hideTooltip() { tooltip.style.display = 'none'; }
+
+    function positionTooltip(ev) {
+      if (tooltip.style.display !== 'block') return;
+      tooltip.style.left = (ev.clientX + 14) + 'px';
+      tooltip.style.top = (ev.clientY + 14) + 'px';
+    }
+
+    function highlightNode(key) {
+      document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('path[data-src]').forEach(path => {
+        path.classList.remove('edge-active');
+        path.classList.remove('edge-muted');
+        const base = parseFloat(path.getAttribute('stroke-width') || '4');
+        path.style.setProperty('--base-width', base);
+      });
+      if (!key) return;
+      document.querySelectorAll(`.node[data-key="${key}"]`).forEach(n => n.classList.add('active'));
+      const related = new Set();
+      EDGE_DATA.forEach(edge => {
+        if (edge.src === key || edge.dst === key) {
+          related.add(edge.src + '>' + edge.dst);
+        }
+      });
+      document.querySelectorAll('path[data-src]').forEach(path => {
+        const src = path.dataset.src || '';
+        const dst = path.dataset.dst || '';
+        const code = src + '>' + dst;
+        if (related.has(code)) {
+          path.classList.add('edge-active');
+        } else {
+          path.classList.add('edge-muted');
+        }
+      });
+    }
+
+    function neighborList(key) {
+      const inbound = [];
+      const outbound = [];
+      EDGE_DATA.forEach(edge => {
+        if (edge.dst === key) inbound.push(edge);
+        if (edge.src === key) outbound.push(edge);
+      });
+      inbound.sort((a,b) => (b.weight||0) - (a.weight||0));
+      outbound.sort((a,b) => (b.weight||0) - (a.weight||0));
+
+      function toItems(items, label) {
+        if (!items.length) return '<p class="empty">Nincs ' + label + ' kapcsolat.</p>';
+        const parts = items.slice(0,6).map(edge => {
+          const other = edge.src === key ? edge.dst : edge.src;
+          const meta = NODE_DATA[other] || { label: other, column: '' };
+          const dir = edge.src === key ? '→' : '←';
+          return `<li><strong>${dir} ${meta.label || other}</strong><span>${formatQty(edge.weight)} db</span></li>`;
+        });
+        return '<ul class="neighbors">' + parts.join('') + '</ul>';
+      }
+
+      return `
+        <h3>Bejövő</h3>
+        ${toItems(inbound, 'bejövő')}
+        <h3>Kimenő</h3>
+        ${toItems(outbound, 'kimenő')}`;
+    }
+
+    function describeNode(key) {
+      const meta = NODE_DATA[key];
+      if (!meta) return '<p class="empty">Nincs adat a kiválasztott csomóponthoz.</p>';
+      let html = `<h2>${meta.label}</h2>`;
+      html += `
+        <div class="stat-grid">
+          <div class="stat-card"><span>Áramlás</span><span class="value">${formatQty(meta.weight)} db</span></div>
+          <div class="stat-card"><span>Oszlop</span><span class="value">${meta.column || '—'}</span></div>
+        </div>`;
+      if (Array.isArray(meta.members) && meta.members.length && !['telep', 'barn'].includes(meta.column || '')) {
+        html += `<h3>Tagok</h3><p style="opacity:0.75">${meta.members.map(String).join(', ')}</p>`;
+      }
+      if (key.startsWith('barn:')) {
+        const barn = BARN_DATA[key];
+        if (barn) {
+          html += `
+            <h3>Istálló mutatók</h3>
+            <div class="stat-grid">
+              <div class="stat-card"><span>Aktuális</span><span class="value">${formatQty(barn.current)} db</span></div>
+              <div class="stat-card"><span>Beérkezett</span><span class="value">${formatQty(barn.arrived)} db</span></div>
+              <div class="stat-card"><span>Elhagyta</span><span class="value">${formatQty(barn.departed)} db</span></div>
+              <div class="stat-card"><span>Szállítmányok</span><span class="value">${barn.shipments ?? '—'}</span></div>
+            </div>`;
+        }
+      } else if (key.startsWith('telep:')) {
+        html += `
+          <h3>Telephely összesítés</h3>
+          <div class="stat-grid">
+            <div class="stat-card"><span>Aktuális</span><span class="value">${formatQty(TELEP_DATA.current)} db</span></div>
+            <div class="stat-card"><span>Beérkezett</span><span class="value">${formatQty(TELEP_DATA.arrived)} db</span></div>
+            <div class="stat-card"><span>Elment</span><span class="value">${formatQty(TELEP_DATA.departed)} db</span></div>
+            <div class="stat-card"><span>Istállók</span><span class="value">${TELEP_DATA.barns ?? '—'}</span></div>
+          </div>`;
+      }
+      html += neighborList(key);
+      return html;
+    }
+
+    renderSummary(TELEP_DATA);
+
+    document.querySelectorAll('.node').forEach(node => {
+      node.addEventListener('mouseenter', ev => showTooltip(node, ev));
+      node.addEventListener('mouseleave', hideTooltip);
+      node.addEventListener('mousemove', positionTooltip);
+      node.addEventListener('click', ev => {
+        const key = node.dataset.key;
+        highlightNode(key);
+        panelContent.innerHTML = describeNode(key);
+        ev.stopPropagation();
+      });
+    });
+
+    document.body.addEventListener('click', ev => {
+      if (ev.target.closest('.node') || ev.target.closest('aside')) return;
+      highlightNode(null);
+      panelContent.innerHTML = '<p class="empty">Válassz egy csomópontot a részletes adatokhoz.</p>';
+    });
+
+    svg.addEventListener('mouseleave', hideTooltip);
+    svg.addEventListener('mousemove', positionTooltip);
+  </script>
+</body>
+</html>
