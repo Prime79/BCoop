@@ -2011,7 +2011,6 @@
           card.innerHTML = `
             <div class="slot-header">
               <span>#${String(slot.slot).padStart(2, '0')}</span>
-              <span class="slot-badge">Szint ${slot.layer}</span>
             </div>
             <div class="slot-body">
               <div>Áll: <span>${slot.flockName}</span></div>
@@ -2154,7 +2153,51 @@
       `;
       body.appendChild(timeline);
 
-      createDialog({ title: `Pozíció #${String(slot.slot).padStart(2, '0')} – ${slot.prehatchCartId}`, body, actions: [{ label: 'Bezár', onClick: (close) => close() }] }).open();
+      // Create and open dialog first
+      const dlg = createDialog({ title: `Pozíció #${String(slot.slot).padStart(2, '0')} – ${slot.prehatchCartId}`, body, actions: [{ label: 'Bezár', onClick: (close) => close() }] });
+      dlg.open();
+
+      // Then append environment chart (safer sizing) and render
+      try {
+        const chartWrap = document.createElement('div');
+        chartWrap.style.cssText = 'margin-top:16px;background:linear-gradient(180deg, rgba(16,27,49,.9), rgba(24,37,63,.85));border:1px solid var(--line);border-radius:12px;padding:12px;';
+        const chartHeader = document.createElement('div');
+        chartHeader.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-end;margin:6px 8px 8px 8px;';
+        const chartTitle = document.createElement('div');
+        chartTitle.textContent = 'Előkeltető környezeti profil';
+        chartTitle.style.cssText = 'font-weight:600;font-size:18px;';
+        const chartHint = document.createElement('div');
+        chartHint.textContent = 'Generált demo adatsorok';
+        chartHint.style.cssText = 'color:var(--muted);font-size:12px;';
+        chartHeader.append(chartTitle, chartHint);
+        const canvas = document.createElement('canvas');
+        canvas.style.width = '100%';
+        canvas.style.height = '360px';
+        canvas.style.display = 'block';
+        canvas.style.borderRadius = '10px';
+        canvas.style.background = 'linear-gradient(180deg, rgba(18,28,48,.6), rgba(18,28,48,.35))';
+        chartWrap.style.position = 'relative';
+        const tooltip = document.createElement('div');
+        tooltip.style.cssText = 'position:absolute;z-index:2;min-width:200px;display:none;pointer-events:none;background:rgba(16,27,49,.98);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 10px;box-shadow:0 8px 28px rgba(0,0,0,.45);font:12px system-ui,Segoe UI,Roboto,Arial,sans-serif;';
+        chartWrap.append(chartHeader, canvas, tooltip);
+        body.appendChild(chartWrap);
+
+        // Generate demo data and render after next frame for layout
+        const data = generateEnvironmentSeries(slot.slot);
+        // Attach tooltip element to canvas for interactivity
+        canvas.__tooltip = tooltip;
+        const draw = () => renderEnvironmentChart(canvas, data);
+        const doDraw = () => requestAnimationFrame(draw);
+        if (typeof ResizeObserver !== 'undefined') {
+          const ro = new ResizeObserver(doDraw);
+          ro.observe(chartWrap);
+        } else {
+          window.addEventListener('resize', draw);
+        }
+        doDraw();
+      } catch (err) {
+        console.warn('Chart render failed', err);
+      }
     }
 
     function openAssignForm(slot){
@@ -2260,6 +2303,271 @@
     }
 
     return { el };
+  }
+
+  // ---- Lightweight chart utilities for generated environment series ----
+  function generateEnvironmentSeries(seed){
+    // 04:00 → 16:00 at 5 minute steps
+    const start = new Date();
+    start.setHours(4, 0, 0, 0);
+    const points = [];
+    const rand = mulberry32(Number(seed) * 12345 + 9876);
+    const total = (12 * 60) / 5; // 12 hours range displayed on screenshot-like scale
+    for (let i = 0; i <= total; i += 1){
+      const t = new Date(start.getTime() + i * 5 * 60 * 1000);
+      // Humidity oscillates between ~50.6% and ~55.2%
+      const rh = 0.525 + 0.026 * Math.sin(i / 3.2 + rand());
+      // CO2 oscillates between ~0.12% and ~0.6%
+      const co2 = 0.36 + 0.24 * Math.sin(i / 1.6 + rand());
+      // Temperature mostly flat with occasional dips
+      let temp = 37.62 + 0.08 * (rand() - 0.5);
+      if (i < 12) temp -= 0.05 + 0.10 * Math.max(0, (12 - i) / 12); // early stabilization
+      if (i > total * 0.55 && i < total * 0.6) temp -= 0.18 * (1 - Math.abs(i - total * 0.575) / (total * 0.025));
+      points.push({ t, temp, rh, co2 });
+    }
+    return points;
+  }
+
+  function mulberry32(a){
+    let t = a >>> 0;
+    return function(){
+      t += 0x6D2B79F5;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function renderEnvironmentChart(canvas, series){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(600, Math.floor(rect.width));
+    const height = Math.floor(parseFloat(getComputedStyle(canvas).height));
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Colors
+    const cBg = '#0b1220';
+    const cGrid = 'rgba(255,255,255,0.06)';
+    const cText = getComputedStyle(document.documentElement).getPropertyValue('--text') || '#e6f0ff';
+    const cPrimary = getComputedStyle(document.documentElement).getPropertyValue('--primary') || '#00ddeb'; // temperature
+    const cBlue = 'rgba(90,130,255,1)'; // humidity
+    const cBlueFillTop = 'rgba(90,130,255,0.28)';
+    const cBlueFillBottom = 'rgba(90,130,255,0.08)';
+    const cOrange = 'rgba(250,165,60,1)'; // co2
+
+    // Chart area
+    const pad = { left: 64, right: 96, top: 28, bottom: 42 };
+    const W = width - pad.left - pad.right;
+    const H = height - pad.top - pad.bottom;
+    ctx.clearRect(0, 0, width, height);
+
+    // Grid background gradient
+    const grd = ctx.createLinearGradient(0, pad.top, 0, pad.top + H);
+    grd.addColorStop(0, 'rgba(16,27,49,0.75)');
+    grd.addColorStop(1, 'rgba(24,37,63,0.55)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(pad.left, pad.top, W, H);
+
+    // Scales
+    const tMin = series[0].t.getTime();
+    const tMax = series[series.length - 1].t.getTime();
+    const yTemp = { min: 37.44, max: 37.92 };
+    const yRh = { min: 0.504, max: 0.552 };
+    const yCo2 = { min: 0.12, max: 0.60 };
+    const x = (ts) => pad.left + ((ts - tMin) / (tMax - tMin)) * W;
+    const yL = (val) => pad.top + (1 - (val - yTemp.min) / (yTemp.max - yTemp.min)) * H;
+    const yR1 = (val) => pad.top + (1 - (val - yRh.min) / (yRh.max - yRh.min)) * H;
+    const yR2 = (val) => pad.top + (1 - (val - yCo2.min) / (yCo2.max - yCo2.min)) * H;
+
+    // Grid lines horizontal (temp scale)
+    ctx.strokeStyle = cGrid;
+    ctx.lineWidth = 1;
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.fillStyle = cPrimary;
+    ctx.textBaseline = 'middle';
+    const ticksTemp = [37.44,37.56,37.68,37.80,37.92];
+    ticksTemp.forEach((v) => {
+      const yy = yL(v);
+      ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(pad.left + W, yy); ctx.stroke();
+      ctx.fillText(`${v.toFixed(2)}°C`, 8, yy);
+    });
+
+    // Right side ticks (RH %)
+    ctx.fillStyle = 'rgba(90,130,255,0.95)';
+    const ticksRh = [0.504,0.528,0.552];
+    ticksRh.forEach((v, i) => {
+      const yy = yR1(v);
+      ctx.fillText(`${(v*100).toFixed(1)}%`, pad.left + W + 8, yy);
+    });
+
+    // Right-most ticks (CO2 %)
+    ctx.fillStyle = cOrange;
+    const ticksCo2 = [0.12,0.36,0.60];
+    ticksCo2.forEach((v) => {
+      const yy = yR2(v);
+      ctx.fillText(`${v.toFixed(2)}%`, pad.left + W + 56, yy);
+    });
+
+    // Axis titles
+    ctx.save();
+    ctx.fillStyle = cPrimary;
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.translate(16, pad.top + H / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Hőmérséklet (°C)', 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = cBlue;
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.translate(pad.left + W + 20, pad.top + H / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Relatív páratartalom (%)', 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = cOrange;
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.translate(pad.left + W + 76, pad.top + H / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('CO₂ (%)', 0, 0);
+    ctx.restore();
+
+    // X axis labels (hours)
+    ctx.fillStyle = cText;
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+    const hourLabels = ['04:00','06:00','08:00','10:00','12:00','14:00','16:00'];
+    hourLabels.forEach((h, idx) => {
+      const ts = tMin + ((tMax - tMin) / (hourLabels.length - 1)) * idx;
+      const xx = x(ts);
+      ctx.fillText(h, xx, pad.top + H + 28);
+    });
+
+    // Humidity area fill
+    const rhPath = new Path2D();
+    series.forEach((p, i) => {
+      const xx = x(p.t.getTime());
+      const yy = yR1(p.rh);
+      if (i === 0) rhPath.moveTo(xx, yy);
+      else rhPath.lineTo(xx, yy);
+    });
+    const rhFill = ctx.createLinearGradient(0, pad.top, 0, pad.top + H);
+    rhFill.addColorStop(0, cBlueFillTop);
+    rhFill.addColorStop(1, cBlueFillBottom);
+    ctx.strokeStyle = cBlue;
+    ctx.lineWidth = 2;
+    ctx.stroke(rhPath);
+    // Close area to bottom for fill
+    rhPath.lineTo(pad.left + W, pad.top + H);
+    rhPath.lineTo(pad.left, pad.top + H);
+    rhPath.closePath();
+    ctx.fillStyle = rhFill;
+    ctx.fill(rhPath);
+
+    // Temperature line
+    ctx.strokeStyle = cPrimary;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    series.forEach((p, i) => {
+      const xx = x(p.t.getTime());
+      const yy = yL(p.temp);
+      if (i === 0) ctx.moveTo(xx, yy);
+      else ctx.lineTo(xx, yy);
+    });
+    ctx.stroke();
+
+    // CO2 line
+    ctx.strokeStyle = cOrange;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    series.forEach((p, i) => {
+      const xx = x(p.t.getTime());
+      const yy = yR2(p.co2);
+      if (i === 0) ctx.moveTo(xx, yy);
+      else ctx.lineTo(xx, yy);
+    });
+    ctx.stroke();
+
+    // Legend removed per request (no series labels near x-axis)
+
+    // Store layout for interactivity
+    canvas.__pad = pad; canvas.__W = W; canvas.__H = H; canvas.__tMin = tMin; canvas.__tMax = tMax; canvas.__len = series.length;
+    canvas.__seriesRef = series;
+
+    // Attach hover listeners once
+    if (!canvas.__hoverAttached){
+      const onMove = (ev) => {
+        const r = canvas.getBoundingClientRect();
+        const xx = ev.clientX - r.left;
+        const padL = canvas.__pad?.left || 0; const Wv = canvas.__W || 1; const n = (canvas.__len || 1) - 1;
+        const ratio = Math.min(1, Math.max(0, (xx - padL) / Wv));
+        const idx = Math.round(ratio * n);
+        canvas.__hoverIndex = isFinite(idx) ? Math.max(0, Math.min(n, idx)) : null;
+        renderEnvironmentChart(canvas, canvas.__seriesRef || series);
+      };
+      const onLeave = () => {
+        canvas.__hoverIndex = null;
+        const tt = canvas.__tooltip; if (tt) tt.style.display = 'none';
+        renderEnvironmentChart(canvas, canvas.__seriesRef || series);
+      };
+      canvas.addEventListener('mousemove', onMove);
+      canvas.addEventListener('mouseleave', onLeave);
+      canvas.__hoverAttached = true;
+    }
+
+    // Hover overlay and tooltip
+    if (canvas.__hoverIndex != null){
+      const idx = Math.max(0, Math.min(series.length - 1, canvas.__hoverIndex));
+      const p = series[idx];
+      const xx = x(p.t.getTime());
+      // Crosshair
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xx, pad.top); ctx.lineTo(xx, pad.top + H); ctx.stroke();
+      // Markers
+      const drawDot = (x0, y0, color) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x0, y0, 3, 0, Math.PI * 2); ctx.fill(); };
+      drawDot(xx, yL(p.temp), cPrimary);
+      drawDot(xx, yR1(p.rh), cBlue);
+      drawDot(xx, yR2(p.co2), cOrange);
+
+      // Tooltip DOM
+      const tt = canvas.__tooltip;
+      if (tt){
+        const time = p.t; const hh = String(time.getHours()).padStart(2, '0'); const mm = String(time.getMinutes()).padStart(2, '0');
+        const fmt = (n, f=2) => n.toFixed(f);
+        tt.innerHTML = `
+          <div style="font-weight:600;margin-bottom:6px">${hh}:${mm}</div>
+          <div style="display:flex;gap:10px;align-items:center;margin:2px 0"><span style="width:10px;height:10px;border-radius:2px;background:${cPrimary};display:inline-block"></span><span>Hőmérséklet:</span><strong>${fmt(p.temp,2)}°C</strong></div>
+          <div style="display:flex;gap:10px;align-items:center;margin:2px 0"><span style="width:10px;height:10px;border-radius:2px;background:${cBlue};display:inline-block"></span><span>Relatív páratartalom:</span><strong>${fmt(p.rh*100,1)}%</strong></div>
+          <div style="display:flex;gap:10px;align-items:center;margin:2px 0"><span style="width:10px;height:10px;border-radius:2px;background:${cOrange};display:inline-block"></span><span>CO₂:</span><strong>${fmt(p.co2,2)}%</strong></div>
+        `;
+        // Position tooltip near the vertical line
+        const wrap = canvas.parentElement; const wrapRect = wrap.getBoundingClientRect();
+        const cRect = canvas.getBoundingClientRect();
+        const leftInWrap = (cRect.left - wrapRect.left) + xx + 12; // offset to the right of line
+        const topInWrap = (cRect.top - wrapRect.top) + pad.top + 8;
+        tt.style.left = `${Math.max(8, Math.min(wrapRect.width - 220, leftInWrap))}px`;
+        tt.style.top = `${topInWrap}px`;
+        tt.style.display = 'block';
+      }
+    }
+  }
+
+  function drawLegendItem(ctx, x, y, color, label){
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = color;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 24, y); ctx.stroke();
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text') || '#e6f0ff';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + 32, y);
   }
 
   function HatcherTransferPage(context){
