@@ -1,5 +1,6 @@
 (function(){
   const Icons = {
+    home: () => '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5l9-7 9 7"></path><path d="M5 10v10a2 2 0 0 0 2 2h4V14h2v8h4a2 2 0 0 0 2-2V10"></path></svg>',
     search: () => '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
     plus: () => '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
     eye: () => '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
@@ -515,6 +516,7 @@
         <div class="brand-title">MAGIR</div>
       </div>
       <nav class="nav">
+        <a href="#/home" data-route="#/home">${Icons.home()} Kezdőoldal</a>
         <div class="nav-section">Keltető üzem</div>
         <a href="#/eggs/intake" data-route="#/eggs/intake">${Icons.egg()} Tojás átvétel</a>
         <a href="#/egg-storage" data-route="#/egg-storage">${Icons.warehouse()} Tojásraktár</a>
@@ -526,9 +528,10 @@
         <a href="#/chick/storage" data-route="#/chick/storage">${Icons.warehouse()} Naposcsibe tárolás</a>
         <a href="#/chick/delivery" data-route="#/chick/delivery">${Icons.truck()} Kiszállítás</a>
         <a href="#/vaccines" data-route="#/vaccines">${Icons.transfer()} Vakcina készlet</a>
-        <a href="#/eggs/allocations" data-route="#/eggs/allocations">${Icons.truck()} Allokáció</a>
-        <div class="nav-section">Analitika</div>
-        <a href="#/analytics" data-route="#/analytics">${Icons.analytics()} Interaktív analítika</a>
+        <div class="nav-section">Monitoring</div>
+        <a href="#/analytics" data-route="#/analytics">${Icons.analytics()} Event flow</a>
+        <div class="nav-section">Tervezés</div>
+        <a href="#/planning/barn" data-route="#/planning/barn">${Icons.edit()} Teleptervezés</a>
       </nav>
     `;
 
@@ -1710,9 +1713,30 @@
   function AnalyticsPage(context){
     const el = document.createElement('div');
     el.innerHTML = `
-      <h2 style="margin:8px 0 16px 0">Interaktív analítika</h2>
+      <h2 style="margin:8px 0 16px 0">Event flow</h2>
       <div style="height: calc(100vh - 160px)">
         <iframe src="../barn_flow_wall_Kaba_interactive.html" style="width:100%;height:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg)"></iframe>
+      </div>
+    `;
+    return { el };
+  }
+
+  function HomePage(context){
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <h2 style="margin:8px 0 16px 0">Kezdőoldal</h2>
+      <div style="height: calc(100vh - 160px)">
+        <iframe src="../../../../entry_page/index.html" style="width:100%;height:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg)"></iframe>
+      </div>
+    `;
+    return { el };
+  }
+  function PlanningBarnPage(context){
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <h2 style=\"margin:8px 0 16px 0\">Teleptervezés</h2>
+      <div style=\"height: calc(100vh - 160px)\">
+        <iframe src=\"../../../../planing/barn_gantt.html\" style=\"width:100%;height:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg)\"></iframe>
       </div>
     `;
     return { el };
@@ -3624,6 +3648,8 @@
   }
 
   const routes = {
+    '#/home': { title: 'Kezdőoldal', load: (ctx) => HomePage(ctx) },
+    '#/planning/barn': { title: 'Teleptervezés', load: (ctx) => PlanningBarnPage(ctx) },
     '#/eggs/intake': { title: 'Tojás átvétel', load: (ctx) => EggsIntakePage(ctx) },
     '#/egg-storage': { title: 'Tojásraktár', load: (ctx) => EggStoragePage(ctx) },
     '#/eggs/transfer': { title: 'Tojás átrakás', load: (ctx) => EggTransferPage(ctx) },
@@ -3634,12 +3660,11 @@
     '#/chick/storage': { title: 'Naposcsibe tárolás', load: (ctx) => ChickStoragePage(ctx) },
     '#/chick/delivery': { title: 'Kiszállítás', load: (ctx) => ChickDeliveryPage(ctx) },
     '#/vaccines': { title: 'Vakcinák', load: (ctx) => VaccineInventoryPage(ctx) },
-    '#/eggs/allocations': { title: 'Szállítmány allokáció', load: () => PlaceholderPage('Szállítmány allokáció') },
     '#/hatchery/batches': { title: 'Keltetés batch-ek', load: () => PlaceholderPage('Keltetés batch-ek') },
-    '#/analytics': { title: 'Interaktív analítika', load: (ctx) => AnalyticsPage(ctx) }
+    '#/analytics': { title: 'Event flow', load: (ctx) => AnalyticsPage(ctx) }
   };
 
-  const defaultRoute = '#/eggs/intake';
+  const defaultRoute = '#/home';
 
   function navigate(){
     const hash = window.location.hash || defaultRoute;
