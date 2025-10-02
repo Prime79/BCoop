@@ -254,15 +254,30 @@
       { id: 'history', label: 'History', count: 42, subtitle: 'Lezárt batch-ek', anchor: '#history' },
     ];
 
+    const teleps = [
+      { code: 'Balk', name: 'Balkány' },
+      { code: 'HBos', name: 'H.BÖSZ' },
+      { code: 'Szek', name: 'Székely' },
+      { code: 'Fels', name: 'Felsősima' },
+      { code: 'Bara', name: 'Barabás' },
+      { code: 'Gava', name: 'Gáva' },
+      { code: 'Ibr',  name: 'Ibrány' },
+      { code: 'Tsb',  name: 'Tiszabercel' },
+      { code: 'Nyka', name: 'Nyírkarász' },
+      { code: 'Aran', name: 'Aranyosapáti' },
+    ];
+
+    const telepCounters = Object.fromEntries(teleps.map(t => [t.code, 0]));
+    let telepCursor = 0;
+
     const specialStatuses = {
-      'batch-07': 'warning',
-      'batch-19': 'warning',
-      'batch-58': 'warning',
-      'batch-33': 'alert',
+      'Bara-1': 'warning',
+      'Ibr-3': 'warning',
+      'Tsb-2': 'warning',
+      'HBos-5': 'alert',
     };
 
     const root = document.getElementById('lanes');
-    let globalBatchIndex = 1;
 
     lanes.forEach(({ id, label, count, subtitle }) => {
       const section = document.createElement('section');
@@ -288,7 +303,10 @@
       grid.className = 'node-grid';
 
       for (let i = 0; i < count; i += 1) {
-        const batchId = `batch-${String(globalBatchIndex).padStart(2, '0')}`;
+        const telep = teleps[telepCursor];
+        telepCounters[telep.code] += 1;
+        const batchId = `${telep.code}-${telepCounters[telep.code]}`;
+
         const node = document.createElement('article');
         node.className = 'node';
         const status = specialStatuses[batchId];
@@ -305,22 +323,23 @@
         title.textContent = batchId.toUpperCase();
 
         const meta = document.createElement('p');
+        const baseline = `${telep.name}`;
         meta.textContent = status === 'alert'
-          ? 'Azonnali figyelmet igényel'
+          ? `${baseline} · azonnali figyelmet igényel`
           : status === 'warning'
-            ? 'Megfigyelés alatt'
-            : 'Normál prioritás';
+            ? `${baseline} · megfigyelés alatt`
+            : `${baseline} · normál prioritás`;
 
         node.appendChild(badge);
         node.appendChild(title);
         node.appendChild(meta);
 
         node.addEventListener('click', () => {
-          window.location.href = `../notebooks/notebooks/outputs/barn_flow_${batchId.replace('batch-', 'Kaba-barn-')}_interactive.html`;
+          window.location.href = `../notebooks/notebooks/outputs/barn_flow_Kaba-barn-${String((telepCounters[telep.code] % 12) + 1).padStart(2, '0')}_interactive.html`;
         });
 
         grid.appendChild(node);
-        globalBatchIndex += 1;
+        telepCursor = (telepCursor + 1) % teleps.length;
       }
 
       section.appendChild(laneHeader);
