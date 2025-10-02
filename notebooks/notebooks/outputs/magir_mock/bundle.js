@@ -1734,9 +1734,9 @@
   function PlanningBarnPage(context){
     const el = document.createElement('div');
     el.innerHTML = `
-      <h2 style=\"margin:8px 0 16px 0\">Teleptervezés</h2>
-      <div style=\"height: calc(100vh - 160px)\">
-        <iframe src=\"../../../../planing/barn_gantt.html\" style=\"width:100%;height:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg)\"></iframe>
+      <h2 style="margin:8px 0 16px 0">Teleptervezés</h2>
+      <div style="height: calc(100vh - 160px)">
+        <iframe src="../../../../planing/barn_gantt.html" style="width:100%;height:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg)"></iframe>
       </div>
     `;
     return { el };
