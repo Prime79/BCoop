@@ -5,3 +5,7 @@
 Highcharts-12/
 Highcharts-Gantt-12/
 flow_log.parquet
+.uv-cache/
+__pycache__/
+*.pyc
+*.pyo
